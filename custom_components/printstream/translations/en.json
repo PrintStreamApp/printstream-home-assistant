@@ -1,0 +1,38 @@
+{
+  "title": "PrintStream Bridge",
+  "config": {
+    "abort": {
+      "single_instance_allowed": "Only one PrintStream Bridge connection can be configured."
+    },
+    "error": {
+      "cannot_connect": "Failed to reach the PrintStream Home Assistant bridge."
+    },
+    "step": {
+      "user": {
+        "title": "Set up PrintStream",
+        "description": "Enter the PrintStream base URL. Enable the Home Assistant bridge plugin in PrintStream first.",
+        "data": {
+          "name": "Name",
+          "hub_url": "PrintStream URL",
+          "access_token": "Access token"
+        }
+      }
+    }
+  },
+  "options": {
+    "error": {
+      "cannot_connect": "Failed to reach the PrintStream Home Assistant bridge."
+    },
+    "step": {
+      "init": {
+        "title": "Update PrintStream connection",
+        "description": "Update the PrintStream URL or replace the access token for this connection.",
+        "data": {
+          "name": "Name",
+          "hub_url": "PrintStream URL",
+          "access_token": "Access token"
+        }
+      }
+    }
+  }
+}
