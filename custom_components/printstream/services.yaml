@@ -1,0 +1,116 @@
+pause_print:
+  name: Pause print
+  description: Pause the active print on a PrintStream printer.
+  fields:
+    entity_id:
+      name: Printer entity
+      description: The PrintStream printer status entity to control.
+      required: true
+      selector:
+        entity:
+          integration: printstream
+          domain: sensor
+
+resume_print:
+  name: Resume print
+  description: Resume a paused print on a PrintStream printer.
+  fields:
+    entity_id:
+      name: Printer entity
+      description: The PrintStream printer status entity to control.
+      required: true
+      selector:
+        entity:
+          integration: printstream
+          domain: sensor
+
+stop_print:
+  name: Stop print
+  description: Stop the active print on a PrintStream printer.
+  fields:
+    entity_id:
+      name: Printer entity
+      description: The PrintStream printer status entity to control.
+      required: true
+      selector:
+        entity:
+          integration: printstream
+          domain: sensor
+
+refresh_printer:
+  name: Refresh printer
+  description: Request an immediate status refresh from a PrintStream printer.
+  fields:
+    entity_id:
+      name: Printer entity
+      description: The PrintStream printer status entity to refresh.
+      required: true
+      selector:
+        entity:
+          integration: printstream
+          domain: sensor
+
+refresh_ams:
+  name: Refresh AMS
+  description: Request an immediate status refresh for the printer that owns a PrintStream AMS unit.
+  fields:
+    entity_id:
+      name: AMS entity
+      description: The PrintStream AMS status entity to refresh.
+      required: true
+      selector:
+        entity:
+          integration: printstream
+          domain: sensor
+
+clear_hms_errors:
+  name: Clear HMS errors
+  description: Acknowledge current HMS printer errors on a PrintStream printer.
+  fields:
+    entity_id:
+      name: Printer entity
+      description: The PrintStream printer status entity to control.
+      required: true
+      selector:
+        entity:
+          integration: printstream
+          domain: sensor
+    code:
+      name: HMS code
+      description: Optional dotted HMS code to acknowledge. Leave blank to clear the currently surfaced errors.
+      required: false
+      selector:
+        text: {}
+
+set_chamber_light:
+  name: Set chamber light
+  description: Turn the chamber light on or off for a PrintStream printer.
+  fields:
+    entity_id:
+      name: Printer entity
+      description: The PrintStream printer status entity to control.
+      required: true
+      selector:
+        entity:
+          integration: printstream
+          domain: sensor
+    "on":
+      # Quoted: a bare `On` is YAML 1.1 for boolean true.
+      name: "On"
+      description: Whether the chamber light should be turned on.
+      required: true
+      selector:
+        boolean: {}
+
+rescan_ams_slot:
+  name: Rescan AMS slot
+  description: Trigger an RFID filament rescan for a PrintStream AMS slot.
+  fields:
+    entity_id:
+      name: AMS slot entity
+      description: The PrintStream AMS slot entity to rescan.
+      required: true
+      selector:
+        entity:
+          integration: printstream
+          domain: sensor

@@ -1,0 +1,28 @@
+# Lives at .github/workflows/ in the exported printstream-home-assistant repo
+# (inert inside the monorepo, where this directory is not the repo root).
+# Standard checks for a HACS custom integration: Home Assistant's hassfest
+# manifest validation plus HACS repository validation.
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1' # weekly, catches breakage from new HA releases
+
+jobs:
+  hassfest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
