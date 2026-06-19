@@ -2,6 +2,8 @@
 
 Home Assistant integration for [PrintStream](https://github.com/PrintStreamApp/printstream), the self-hosted print farm manager for Bambu Lab printers. Learn more at [printstream.app](https://printstream.app).
 
+[![PrintStream — live dashboard of your Bambu Lab printers](https://printstream.app/marketing/printers.jpg)](https://printstream.app)
+
 Connects to your PrintStream server and exposes your printers in Home Assistant:
 
 - **Sensors** — printer state, current job, progress, layer, remaining time, temperatures, AMS details
