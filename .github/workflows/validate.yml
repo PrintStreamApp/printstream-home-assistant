@@ -26,3 +26,8 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+          # PolyForm Noncommercial 1.0.0 is not in GitHub's license database
+          # (licensee reports NOASSERTION), so the HACS license check can
+          # never pass; the repo does carry a full LICENSE + NOTICE. This is
+          # a custom-repo integration, so the check is advisory here.
+          ignore: license
