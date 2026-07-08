@@ -1,0 +1,51 @@
+name: Release
+
+# HACS installs and updates this integration from the latest GitHub *release*,
+# not from commits on the default branch. Each `npm run export:ha` snapshot that
+# bumps custom_components/printstream/manifest.json must therefore be published
+# as a matching `v<version>` release, or HACS never sees the change.
+#
+# This runs on every push to main that touches the manifest, reads the version,
+# and creates the release if one does not already exist. It is idempotent: a
+# push whose version already has a release is a no-op, so re-running is safe.
+on:
+  push:
+    branches: [main]
+    paths:
+      - custom_components/printstream/manifest.json
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read manifest version
+        id: manifest
+        run: |
+          version="$(jq -r .version custom_components/printstream/manifest.json)"
+          if [ -z "$version" ] || [ "$version" = "null" ]; then
+            echo "manifest.json has no version" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Create release if missing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.manifest.outputs.version }}
+        run: |
+          tag="v${VERSION}"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "Release $tag already exists; nothing to do."
+            exit 0
+          fi
+          gh release create "$tag" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "$tag" \
+            --generate-notes
