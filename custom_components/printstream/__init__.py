@@ -265,14 +265,29 @@ async def _async_register_card_resource(hass: HomeAssistant) -> None:
     domain_data = hass.data.setdefault(DOMAIN, {})
     if domain_data.get(DATA_CARD_RESOURCE_REGISTERED):
         return
+    # Claim the registration synchronously, before the first ``await``. With two
+    # config entries (two bridges) Home Assistant runs their setups concurrently;
+    # the static path route below can only be registered once, so a second entry
+    # that observed the flag still unset would call async_register_static_paths a
+    # second time and raise "Added route will never be executed, method GET is
+    # already registered". Setting the flag here — while control has not yet
+    # yielded to the event loop — closes that race so the loser skips instead.
+    domain_data[DATA_CARD_RESOURCE_REGISTERED] = True
 
     resource_path = Path(__file__).parent / "frontend" / CARD_RESOURCE_FILENAME
     # Serve the exact JS file at the URL Lovelace loads. Home Assistant's
     # static path helper supports file paths here; custom integrations like
     # browser_mod use the same pattern.
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig(f"/printstream/{CARD_RESOURCE_FILENAME}", str(resource_path), True)]
-    )
+    registered = False
+    try:
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(f"/printstream/{CARD_RESOURCE_FILENAME}", str(resource_path), True)]
+        )
+        registered = True
+    finally:
+        if not registered:
+            # Release the claim so a later setup retry can register the route.
+            domain_data.pop(DATA_CARD_RESOURCE_REGISTERED, None)
 
     # Register as a Lovelace module resource so the card picker discovers it.
     # CARD_RESOURCE_URL carries a ?v= query string so each version gets a
@@ -286,8 +301,6 @@ async def _async_register_card_resource(hass: HomeAssistant) -> None:
             domain_data[_DATA_CARD_RESOURCE_RETRY_TASK] = hass.async_create_task(
                 _async_retry_lovelace_resource_registration(hass)
             )
-
-    domain_data[DATA_CARD_RESOURCE_REGISTERED] = True
 
 
 async def _async_retry_lovelace_resource_registration(hass: HomeAssistant) -> None:
