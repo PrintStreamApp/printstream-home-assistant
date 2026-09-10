@@ -2,16 +2,16 @@
 
 Home Assistant integration for [PrintStream](https://github.com/PrintStreamApp/printstream), the self-hosted print farm manager for Bambu Lab printers. Learn more at [printstream.app](https://printstream.app).
 
-[![PrintStream — live dashboard of your Bambu Lab printers](https://printstream.app/marketing/printers.jpg)](https://printstream.app)
+[![PrintStream: live dashboard of your Bambu Lab printers](https://printstream.app/marketing/printers.jpg)](https://printstream.app)
 
 Connects to your PrintStream server and exposes your printers in Home Assistant:
 
-- **Sensors** — printer state, current job, progress, layer, remaining time, temperatures, AMS details
-- **Binary sensors** — printing, online, error states
-- **Cameras** — live printer camera feeds relayed through PrintStream
-- **Images** — current job cover/preview images
-- **Media source** — browse finished-print snapshots
-- **Lovelace cards** — bundled printer cards for dashboards
+- **Sensors**: printer state, current job, progress, layer, remaining time, temperatures, AMS details
+- **Binary sensors**: printing, online, error states
+- **Cameras**: live printer camera feeds relayed through PrintStream
+- **Images**: current job cover/preview images
+- **Media source**: browse finished-print snapshots
+- **Lovelace cards**: bundled printer cards for dashboards
 
 ## Requirements
 
@@ -36,7 +36,7 @@ Copy `custom_components/printstream` into your Home Assistant `config/custom_com
 2. In Home Assistant, go to **Settings → Devices & Services → Add Integration** and search for **PrintStream**.
 3. Enter a name, your PrintStream server URL, and the access token.
 
-Printers and AMS units managed by PrintStream appear as devices automatically and stay current from PrintStream's live event stream — no polling. You can add multiple PrintStream entries (for example, one per workspace), and use **Configure** on an existing entry to replace its token.
+Printers and AMS units managed by PrintStream appear as devices automatically and stay current from PrintStream's live event stream, no polling. You can add multiple PrintStream entries (for example, one per workspace), and use **Configure** on an existing entry to replace its token.
 
 ## Dashboards and services
 

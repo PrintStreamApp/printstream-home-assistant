@@ -89,7 +89,7 @@ class PrintStreamBridgeCoordinator(DataUpdateCoordinator[PrintStreamBridgeData])
     # ------------------------------------------------------------------
 
     async def _async_update_data(self) -> PrintStreamBridgeData:
-        """Fetch the full snapshot — called once on start-up."""
+        """Fetch the full snapshot (called once on start-up)."""
         try:
             payload = await self.api.async_get_snapshot()
         except PrintStreamBridgeApiError as err:

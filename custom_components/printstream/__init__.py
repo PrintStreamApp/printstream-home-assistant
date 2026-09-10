@@ -270,8 +270,8 @@ async def _async_register_card_resource(hass: HomeAssistant) -> None:
     # the static path route below can only be registered once, so a second entry
     # that observed the flag still unset would call async_register_static_paths a
     # second time and raise "Added route will never be executed, method GET is
-    # already registered". Setting the flag here — while control has not yet
-    # yielded to the event loop — closes that race so the loser skips instead.
+    # already registered". Setting the flag here, while control has not yet
+    # yielded to the event loop, closes that race so the loser skips instead.
     domain_data[DATA_CARD_RESOURCE_REGISTERED] = True
 
     resource_path = Path(__file__).parent / "frontend" / CARD_RESOURCE_FILENAME
