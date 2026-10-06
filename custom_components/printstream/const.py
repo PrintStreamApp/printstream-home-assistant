@@ -20,7 +20,7 @@ PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.CAMERA, Platform.
 DATA_CARD_RESOURCE_REGISTERED = "card_resource_registered"
 DATA_COORDINATOR = "coordinator"
 
-CARD_RESOURCE_VERSION = "0.3.32"
+CARD_RESOURCE_VERSION = "0.3.40"
 CARD_RESOURCE_URL = f"/printstream/printstream-cards.js?v={CARD_RESOURCE_VERSION}"
 CARD_RESOURCE_FILENAME = "printstream-cards.js"
 

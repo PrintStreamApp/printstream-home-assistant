@@ -19,7 +19,6 @@ from .api import PrintStreamBridgeApiClient, PrintStreamBridgeApiError
 from .const import (
     CARD_RESOURCE_FILENAME,
     CARD_RESOURCE_URL,
-    CARD_RESOURCE_VERSION,
     CONF_ACCESS_TOKEN,
     CONF_HUB_URL,
     DATA_CARD_RESOURCE_REGISTERED,
