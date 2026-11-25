@@ -1,52 +1,70 @@
 # PrintStream for Home Assistant
 
-Home Assistant integration for [PrintStream](https://github.com/PrintStreamApp/printstream), the self-hosted print farm manager for Bambu Lab printers. Learn more at [printstream.app](https://printstream.app).
+Brings the printers you run with [PrintStream](https://github.com/PrintStreamApp/printstream), the self-hosted print farm manager for Bambu Lab printers, into Home Assistant; learn more at [printstream.app](https://printstream.app).
 
-[![PrintStream: live dashboard of your Bambu Lab printers](https://printstream.app/marketing/printers.jpg)](https://printstream.app)
+![PrintStream printer and AMS cards on a Home Assistant dashboard](store-assets/web/screenshots/01-dashboard-cards-dark.png)
 
-Connects to your PrintStream server and exposes your printers in Home Assistant:
+**Live printer state:** sensors for status, current job, progress, layer, remaining time, temperatures, fans and Wi-Fi signal, updated from PrintStream's live event stream with no polling.
 
-- **Sensors**: printer state, current job, progress, layer, remaining time, temperatures, AMS details
-- **Binary sensors**: printing, online, error states
-- **Cameras**: live printer camera feeds relayed through PrintStream
-- **Images**: current job cover/preview images
-- **Media source**: browse finished-print snapshots
-- **Lovelace cards**: bundled printer cards for dashboards
+**AMS and spools:** each AMS unit is a device with humidity, temperature, drying state and a sensor per slot for material, colour and remaining filament, plus external spools.
+
+**Cameras and images:** a live camera entity for camera-capable printers, relayed through PrintStream, and image entities for the job's cover and the latest snapshot.
+
+**Dashboard cards:** printer, AMS and media cards register themselves, with no resource to add by hand.
+
+**Controls:** services to pause, resume and stop a print, refresh a printer or AMS, switch the chamber light, clear printer errors and rescan an AMS slot.
+
+**Library:** your PrintStream library appears in Home Assistant's media browser.
+
+**Model-aware entities:** sensors are created only for what your printer or AMS reports, such as per-nozzle readouts on dual-nozzle models, AMS drying, and door, duct and light state.
 
 ## Requirements
 
-- A running PrintStream server reachable from Home Assistant
-- A PrintStream API token (create one in PrintStream under Settings)
+- Home Assistant 2024.11.0 or later.
+- A PrintStream server, version 1.0.6 or later, that Home Assistant can reach.
+- The **Home Assistant** plugin enabled in PrintStream for the workspace you want to connect.
 
 ## Installation
 
 ### HACS (recommended)
 
-1. In HACS, open **Integrations**, then choose **Custom repositories** from the menu.
-2. Add `https://github.com/PrintStreamApp/printstream-home-assistant` with category **Integration**.
-3. Install **PrintStream** and restart Home Assistant.
+1. In HACS, open the menu and choose **Custom repositories**.
+2. Add `https://github.com/PrintStreamApp/printstream-home-assistant` with the type **Integration**.
+3. Install **PrintStream**, then restart Home Assistant.
 
 ### Manual
 
-Copy `custom_components/printstream` into your Home Assistant `config/custom_components/` directory and restart Home Assistant.
+Copy `custom_components/printstream` into your Home Assistant `config/custom_components/` folder, then restart Home Assistant.
 
 ## Setup
 
-1. In PrintStream, enable the **Home Assistant** plugin for your workspace (Settings → Plugins), then create the workspace access token from the plugin's panel. The managed token includes the printer, AMS, camera, and library access the integration needs, and PrintStream will warn you if it is later revoked.
-2. In Home Assistant, go to **Settings → Devices & Services → Add Integration** and search for **PrintStream**.
-3. Enter a name, your PrintStream server URL, and the access token.
+1. In PrintStream, open **Settings**, then **Plugins**, enable **Home Assistant** for your workspace, and choose **Create access token** in the plugin's panel. The token carries the printer, AMS, camera and library access the integration needs, and PrintStream warns you if it is later revoked.
+2. In Home Assistant, go to **Settings**, **Devices & services**, **Add integration**, and search for **PrintStream**.
+3. Enter a name, your PrintStream server's URL and the access token.
 
-Printers and AMS units managed by PrintStream appear as devices automatically and stay current from PrintStream's live event stream, no polling. You can add multiple PrintStream entries (for example, one per workspace), and use **Configure** on an existing entry to replace its token.
+Printers and AMS units appear as devices. You can add more than one PrintStream entry, for example one per workspace. To change an entry's name, URL or token later, choose **Reconfigure** from its menu. If PrintStream stops accepting the token, for example after it is revoked, Home Assistant asks you to re-authenticate: create a new token in the plugin's panel and enter it there. **Download diagnostics** in the same menu gives you a file to attach to an issue, with the token, serial numbers and addresses removed.
 
 ## Dashboards and services
 
-- Custom Lovelace cards are auto-registered: `custom:printstream-printer-card`, `custom:printstream-ams-card`, and `custom:printstream-printer-media-card`.
-- Services are registered for pause, resume, stop, refresh, chamber light control, HMS clearing, and AMS slot rescans.
-- Camera-capable printers get a live camera entity plus image entities for the cover thumbnail and latest snapshot.
-- A PrintStream library media source appears in Home Assistant's media browser.
+The cards are `custom:printstream-printer-card`, `custom:printstream-ams-card` and `custom:printstream-printer-media-card`. Each takes the status sensor of a printer or AMS unit as its entity, and the card editor offers the first one it finds:
 
-Entity exposure is model-aware: sensors are only created for capabilities your printer or AMS actually reports (per-nozzle readouts on dual-nozzle models, AMS drying metrics, door/duct/light state, external spools, and so on).
+```yaml
+type: custom:printstream-printer-card
+entity: sensor.workshop_x1c_status
+```
+
+The services are in the `printstream` domain: `pause_print`, `resume_print`, `stop_print`, `refresh_printer`, `refresh_ams`, `clear_hms_errors`, `set_chamber_light` and `rescan_ams_slot`. Each targets a PrintStream entity; **Developer tools**, **Actions** lists their fields.
 
 ## Issues
 
-Please report problems at <https://github.com/PrintStreamApp/printstream-home-assistant/issues>.
+Report problems at <https://github.com/PrintStreamApp/printstream-home-assistant/issues>. Include the integration, Home Assistant and PrintStream versions, and remove access tokens and server addresses from any logs you paste.
+
+## Where development happens
+
+This repository is generated from PrintStream's private source repository, where development happens, and is updated with each integration release. Issues and pull requests here are welcome; accepted changes arrive with the next release.
+
+## License
+
+Licensed under the **PolyForm Noncommercial License 1.0.0** (see [`LICENSE`](LICENSE)), copyright Ryan Ewen (see [`NOTICE`](NOTICE)). You may use, modify and share it for any noncommercial purpose; commercial rights are reserved.
+
+[Website](https://printstream.app) · [Terms of Service](https://printstream.app/terms) · [Privacy Policy](https://printstream.app/privacy)

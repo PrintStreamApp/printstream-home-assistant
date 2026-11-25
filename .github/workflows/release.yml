@@ -8,6 +8,10 @@ name: Release
 # This runs on every push to main that touches the manifest, reads the version,
 # and creates the release if one does not already exist. It is idempotent: a
 # push whose version already has a release is a no-op, so re-running is safe.
+#
+# The Release body is release-notes/<version>.md, the approved notes written
+# for users, followed by the AI disclosure line every release carries. A
+# version with no notes file fails instead of publishing generated notes.
 on:
   push:
     branches: [main]
@@ -15,14 +19,23 @@ on:
       - custom_components/printstream/manifest.json
   workflow_dispatch: {}
 
+# Least privilege by default (CI-5): jobs that need more widen it at job level.
 permissions:
-  contents: write
+  contents: read
+
+# Publishes or files something: never cancel a run part-way.
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
+    timeout-minutes: 10
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Read manifest version
         id: manifest
@@ -44,8 +57,17 @@ jobs:
             echo "Release $tag already exists; nothing to do."
             exit 0
           fi
+
+          notes_file="release-notes/${VERSION}.md"
+          if [ ! -s "$notes_file" ] || ! grep -q '[^[:space:]]' "$notes_file"; then
+            echo "No release notes for ${VERSION}: add ${notes_file}" >&2
+            exit 1
+          fi
+          cp "$notes_file" notes.md
+          printf '\n%s\n' '*AI disclosure: this release and the related code were written with the assistance of AI.*' >> notes.md
+
           gh release create "$tag" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
-            --title "$tag" \
-            --generate-notes
+            --title "PrintStream for Home Assistant ${VERSION}" \
+            --notes-file notes.md

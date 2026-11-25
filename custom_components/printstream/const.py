@@ -1,4 +1,5 @@
-"""Constants for the PrintStream Bridge integration."""
+"""Constants for the PrintStream integration."""
+
 from __future__ import annotations
 
 import os
@@ -7,7 +8,7 @@ from pathlib import Path
 from homeassistant.const import Platform
 
 DOMAIN = "printstream"
-NAME = "PrintStream Bridge"
+NAME = "PrintStream"
 MANUFACTURER = "Bambu Lab"
 
 CONF_HUB_URL = "hub_url"
@@ -20,7 +21,7 @@ PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.CAMERA, Platform.
 DATA_CARD_RESOURCE_REGISTERED = "card_resource_registered"
 DATA_COORDINATOR = "coordinator"
 
-CARD_RESOURCE_VERSION = "0.3.40"
+CARD_RESOURCE_VERSION = "0.3.41"
 CARD_RESOURCE_URL = f"/printstream/printstream-cards.js?v={CARD_RESOURCE_VERSION}"
 CARD_RESOURCE_FILENAME = "printstream-cards.js"
 

@@ -915,8 +915,12 @@
     font-size: 0.82rem;
     line-height: 1.45;
   }
-  select {
+  /* Plain form controls throughout: Home Assistant's own ha-textfield and ha-formfield are not
+     defined for custom card editors in current releases, which left these fields invisible. */
+  select, input[type="text"] {
     width: 100%;
+    box-sizing: border-box;
+    font: inherit;
     min-height: 40px;
     border: 1px solid var(--divider-color);
     border-radius: 10px;
@@ -924,14 +928,24 @@
     color: var(--primary-text-color);
     padding: 0 12px;
   }
-  ha-textfield, ha-formfield, ha-checkbox { display: block; }
   .toggle-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 4px 12px;
   }
-  .toggle-grid ha-formfield {
-    --mdc-theme-text-primary-on-background: var(--primary-text-color);
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 36px;
+    color: var(--primary-text-color);
+    cursor: pointer;
+  }
+  .check input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--primary-color);
   }
 `;
 
@@ -2724,12 +2738,24 @@
       </div>
     </ha-card>`;
   }
+  var AMS_NAME_STYLES = ["short", "long", "custom"];
+  function amsCardNameStyle(config) {
+    if (AMS_NAME_STYLES.includes(config?.name_style)) return config.name_style;
+    return config?.title ? "custom" : "short";
+  }
+  function amsCardTitle(config, attrs, unitLetter) {
+    const shortName = `AMS ${unitLetter}`;
+    const style = amsCardNameStyle(config);
+    if (style === "custom") return String(config.title ?? "").trim() || shortName;
+    if (style === "long") return attrs.printer_name ? `${attrs.printer_name} ${shortName}` : shortName;
+    return shortName;
+  }
   function renderAmsCard(stateObj, config) {
     const attrs = stateObj.attributes || {};
     const contentSettings = normalizePrinterCardContentSettings(config);
     const unitId = Number(attrs.unit_id ?? 0);
     const unitLetter = String.fromCharCode(65 + unitId);
-    const title = config.title || attrs.name || friendlyName(stateObj, stateObj.entity_id) || `AMS ${unitLetter}`;
+    const title = amsCardTitle(config, attrs, unitLetter);
     const temp = attrs.temperature != null ? `${Number(attrs.temperature).toFixed(0)}°` : null;
     const humidity = attrs.humidity_percent != null ? `${Math.round(attrs.humidity_percent)}% RH` : attrs.humidity_level != null ? `Lv ${attrs.humidity_level}/5` : null;
     const showDrying = Boolean(attrs.support_drying && attrs.drying_active);
@@ -2798,6 +2824,7 @@
     set hass(hass) {
       this._hass = hass;
       this._syncEntityOptions();
+      this._syncNameStyle();
     }
     /** Called by HA's Lovelace editor when this element is placed in the config panel. */
     setConfig(config) {
@@ -2825,15 +2852,30 @@
           <select id="entity-select"></select>
         </label>
         <div class="helper">${this._kindFilter === "printer" ? "Choose the printer status entity that backs this card." : "Choose the AMS unit entity that backs this card."}</div>
-        <ha-textfield id="title-field" label="Title (optional)" placeholder="Leave blank to use printer name"></ha-textfield>
+        ${this._kindFilter === "ams" ? `
+          <label class="field">
+            <span class="field-label">Name</span>
+            <select id="name-style">
+              ${AMS_NAME_STYLES.map((style) => `<option value="${style}"></option>`).join("")}
+            </select>
+          </label>
+          <label class="field" id="title-field-wrap">
+            <span class="field-label">Custom name</span>
+            <input id="title-field" type="text" autocomplete="off">
+          </label>` : `
+          <label class="field" id="title-field-wrap">
+            <span class="field-label">Title (optional)</span>
+            <input id="title-field" type="text" autocomplete="off" placeholder="Leave blank to use printer name">
+          </label>`}
         ${this._kindFilter === "printer" ? `
           <div class="field-group">
             <span class="field-label">Card Content</span>
             <div class="toggle-grid">
               ${PRINTER_CONTENT_OPTIONS.map(([key, label]) => `
-                <ha-formfield label="${escapeHtml(label)}" data-content-option="${escapeHtml(key)}">
-                  <ha-checkbox data-content-key="${escapeHtml(key)}"></ha-checkbox>
-                </ha-formfield>`).join("")}
+                <label class="check" data-content-option="${escapeHtml(key)}">
+                  <input type="checkbox" data-content-key="${escapeHtml(key)}">
+                  <span>${escapeHtml(label)}</span>
+                </label>`).join("")}
             </div>
             <div class="helper">Match the same content switches used by the app's printer views.</div>
           </div>` : ""}
@@ -2842,9 +2884,10 @@
             <span class="field-label">AMS Content</span>
             <div class="toggle-grid">
               ${AMS_CONTENT_OPTIONS.map(([key, label]) => `
-                <ha-formfield label="${escapeHtml(label)}" data-content-option="${escapeHtml(key)}">
-                  <ha-checkbox data-content-key="${escapeHtml(key)}"></ha-checkbox>
-                </ha-formfield>`).join("")}
+                <label class="check" data-content-option="${escapeHtml(key)}">
+                  <input type="checkbox" data-content-key="${escapeHtml(key)}">
+                  <span>${escapeHtml(label)}</span>
+                </label>`).join("")}
             </div>
             <div class="helper">Hide slot rescan actions when you want a cleaner read-only AMS card.</div>
           </div>` : ""}
@@ -2869,6 +2912,14 @@
         else delete next.title;
         this._dispatchConfig(next);
       });
+      const nameStyle = this.shadowRoot.getElementById("name-style");
+      if (nameStyle) {
+        nameStyle.addEventListener("change", (e) => {
+          const next = { ...this._config, name_style: e.target.value };
+          if (next.name_style !== "custom") delete next.title;
+          this._dispatchConfig(next);
+        });
+      }
       this.shadowRoot.querySelectorAll("[data-content-key]").forEach((input) => {
         input.addEventListener("change", (e) => {
           const target = e.target;
@@ -2949,12 +3000,33 @@
       this._syncEntityOptions();
       const titleField = this.shadowRoot?.getElementById?.("title-field");
       if (titleField) titleField.value = this._config?.title || "";
+      this._syncNameStyle();
       const contentSettings = normalizePrinterCardContentSettings(this._config);
       this.shadowRoot?.querySelectorAll?.("[data-content-key]")?.forEach?.((input) => {
         const key = input.dataset.contentKey;
         if (!key) return;
         input.checked = Boolean(contentSettings[key]);
       });
+    }
+    /**
+     * The AMS editor's name choice: each option shows the name it would give the selected unit, and
+     * the custom name field appears only when custom is chosen.
+     */
+    _syncNameStyle() {
+      const select = this.shadowRoot?.getElementById?.("name-style");
+      if (!select) return;
+      const attrs = this._hass?.states?.[this._config?.entity]?.attributes ?? {};
+      const unitLetter = String.fromCharCode(65 + Number(attrs.unit_id ?? 0));
+      const labels = {
+        short: `Short: ${amsCardTitle({ name_style: "short" }, attrs, unitLetter)}`,
+        long: `Long: ${amsCardTitle({ name_style: "long" }, attrs, unitLetter)}`,
+        custom: "Custom"
+      };
+      for (const option of select.options) option.textContent = labels[option.value] ?? option.value;
+      const style = amsCardNameStyle(this._config);
+      select.value = style;
+      const titleField = this.shadowRoot.getElementById("title-field-wrap");
+      if (titleField) titleField.style.display = style === "custom" ? "" : "none";
     }
     _dispatchConfig(config) {
       this.dispatchEvent(new CustomEvent("config-changed", {
@@ -3306,6 +3378,7 @@
   if (!customElements.get("printstream-printer-media-card")) {
     customElements.define("printstream-printer-media-card", PrintStreamPrinterMediaCard);
   }
+  var CARD_DOCUMENTATION_URL = "https://github.com/PrintStreamApp/printstream-home-assistant";
   window.customCards = window.customCards || [];
   window.customCards.push(
     {
@@ -3313,21 +3386,21 @@
       name: "PrintStream Printer",
       description: "Printer card with app-style status, optional thumbnails, and optional AMS units controlled from the card settings.",
       preview: true,
-      documentationURL: "https://github.com/RyanEwen/printstream"
+      documentationURL: CARD_DOCUMENTATION_URL
     },
     {
       type: "printstream-ams-card",
       name: "PrintStream AMS",
       description: "AMS unit with per-slot color tiles, humidity, temperature, and drying state.",
       preview: true,
-      documentationURL: "https://github.com/RyanEwen/printstream"
+      documentationURL: CARD_DOCUMENTATION_URL
     },
     {
       type: "printstream-printer-media-card",
       name: "PrintStream Printer Media",
       description: "Alternative camera-first printer card with overlay information and optional AMS units.",
       preview: true,
-      documentationURL: "https://github.com/RyanEwen/printstream"
+      documentationURL: CARD_DOCUMENTATION_URL
     }
   );
 })();

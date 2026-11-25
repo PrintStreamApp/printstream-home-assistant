@@ -1,11 +1,14 @@
 {
-  "title": "PrintStream Bridge",
+  "title": "PrintStream",
   "config": {
-    "abort": {
-      "single_instance_allowed": "Only one PrintStream Bridge connection can be configured."
-    },
     "error": {
-      "cannot_connect": "Failed to reach the PrintStream Home Assistant bridge."
+      "cannot_connect": "Couldn't reach PrintStream at this URL.",
+      "invalid_auth": "PrintStream did not accept this access token. Create a new one in PrintStream's Home Assistant plugin.",
+      "required": "Enter an access token."
+    },
+    "abort": {
+      "reauth_successful": "The new access token works. PrintStream is reconnecting.",
+      "reconfigure_successful": "PrintStream is updated and reconnecting."
     },
     "step": {
       "user": {
@@ -16,17 +19,17 @@
           "hub_url": "PrintStream URL",
           "access_token": "Access token"
         }
-      }
-    }
-  },
-  "options": {
-    "error": {
-      "cannot_connect": "Failed to reach the PrintStream Home Assistant bridge."
-    },
-    "step": {
-      "init": {
+      },
+      "reauth_confirm": {
+        "title": "Replace the PrintStream access token",
+        "description": "PrintStream no longer accepts the access token for {name}. In PrintStream, choose **Create access token** in the Home Assistant plugin's panel, then enter the new token here.",
+        "data": {
+          "access_token": "Access token"
+        }
+      },
+      "reconfigure": {
         "title": "Update PrintStream connection",
-        "description": "Update the PrintStream URL or replace the access token for this connection.",
+        "description": "Change the name or PrintStream URL, or enter a new access token. Leave the token blank to keep the current one.",
         "data": {
           "name": "Name",
           "hub_url": "PrintStream URL",

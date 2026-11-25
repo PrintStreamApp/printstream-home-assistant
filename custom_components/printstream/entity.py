@@ -1,16 +1,16 @@
 """Shared entity helpers for PrintStream bridge devices."""
+
 from __future__ import annotations
 
-from homeassistant.config_entries import ConfigEntry
 from typing import Any
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api import build_url
 from .const import CONF_HUB_URL, DOMAIN, MANUFACTURER
 from .coordinator import PrintStreamBridgeCoordinator
-
 
 _CHAMBER_TEMPERATURE_MODELS = {"X1E", "H2D", "H2DPRO", "H2C", "H2S"}
 _AUX_FAN_MODELS = {"X1C", "X1E", "X2D", "P1S", "P2S", "H2D", "H2DPRO", "H2C", "H2S"}
@@ -25,7 +25,12 @@ class PrintStreamPrinterEntity(CoordinatorEntity[PrintStreamBridgeCoordinator]):
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, printer_id: str) -> None:
+    def __init__(
+        self,
+        coordinator: PrintStreamBridgeCoordinator,
+        entry: ConfigEntry,
+        printer_id: str,
+    ) -> None:
         super().__init__(coordinator)
         self._entry = entry
         self._printer_id = printer_id
@@ -53,7 +58,9 @@ class PrintStreamPrinterEntity(CoordinatorEntity[PrintStreamBridgeCoordinator]):
             name=_string_value(printer.get("name")) or serial,
             model=_string_value(printer.get("model")),
             serial_number=serial,
-            configuration_url=build_url(self._entry.data[CONF_HUB_URL], detail_path) if detail_path else None,
+            configuration_url=build_url(self._entry.data[CONF_HUB_URL], detail_path)
+            if detail_path
+            else None,
         )
 
 
@@ -62,7 +69,9 @@ class PrintStreamAmsEntity(CoordinatorEntity[PrintStreamBridgeCoordinator]):
 
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, ams_id: str) -> None:
+    def __init__(
+        self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, ams_id: str
+    ) -> None:
         super().__init__(coordinator)
         self._entry = entry
         self._ams_id = ams_id
@@ -83,24 +92,39 @@ class PrintStreamAmsEntity(CoordinatorEntity[PrintStreamBridgeCoordinator]):
         ams = self.ams or {}
         printer_serial = _string_value(ams.get("printerSerial")) or "unknown"
         unit_id = ams.get("unitId")
-        detail_path = f"/printers/{ams.get('printerId')}" if isinstance(ams.get("printerId"), str) else None
+        detail_path = (
+            f"/printers/{ams.get('printerId')}"
+            if isinstance(ams.get("printerId"), str)
+            else None
+        )
 
         return DeviceInfo(
-            identifiers={(DOMAIN, ams_device_identifier(self._entry, printer_serial, unit_id))},
+            identifiers={
+                (DOMAIN, ams_device_identifier(self._entry, printer_serial, unit_id))
+            },
             manufacturer=MANUFACTURER,
             name=_ams_display_name(ams, unit_id),
             model="AMS",
             via_device=(DOMAIN, printer_device_identifier(self._entry, printer_serial)),
-            configuration_url=build_url(self._entry.data[CONF_HUB_URL], detail_path) if detail_path else None,
+            configuration_url=build_url(self._entry.data[CONF_HUB_URL], detail_path)
+            if detail_path
+            else None,
         )
 
 
-def printer_unique_id(entry: ConfigEntry, printer: dict[str, Any] | None, fallback_printer_id: str, suffix: str) -> str:
+def printer_unique_id(
+    entry: ConfigEntry,
+    printer: dict[str, Any] | None,
+    fallback_printer_id: str,
+    suffix: str,
+) -> str:
     serial = _string_value((printer or {}).get("serial")) or fallback_printer_id
     return f"printstream_{entry.entry_id}_{serial}_{suffix}"
 
 
-def ams_unique_id(entry: ConfigEntry, ams: dict[str, Any] | None, fallback_ams_id: str, suffix: str) -> str:
+def ams_unique_id(
+    entry: ConfigEntry, ams: dict[str, Any] | None, fallback_ams_id: str, suffix: str
+) -> str:
     printer_serial = _string_value((ams or {}).get("printerSerial")) or "unknown"
     unit_id = (ams or {}).get("unitId")
     unit_token = unit_id if unit_id is not None else fallback_ams_id
@@ -167,7 +191,9 @@ def printer_has_any_light(printer: dict[str, Any] | None) -> bool:
     return any(bool(value) for value in light_capabilities.values())
 
 
-def printer_print_option_supported(printer: dict[str, Any] | None, option_key: str) -> bool:
+def printer_print_option_supported(
+    printer: dict[str, Any] | None, option_key: str
+) -> bool:
     print_options = (printer or {}).get("printOptions")
     if not isinstance(print_options, dict):
         return False
@@ -175,7 +201,9 @@ def printer_print_option_supported(printer: dict[str, Any] | None, option_key: s
     return isinstance(option, dict) and bool(option.get("supported"))
 
 
-def printer_ams_setting_available(printer: dict[str, Any] | None, setting_key: str) -> bool:
+def printer_ams_setting_available(
+    printer: dict[str, Any] | None, setting_key: str
+) -> bool:
     ams_settings = (printer or {}).get("amsSettings")
     if not isinstance(ams_settings, dict):
         return False

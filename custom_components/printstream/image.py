@@ -1,7 +1,7 @@
 """Image entities for PrintStream printers."""
+
 from __future__ import annotations
 
-from datetime import datetime
 import logging
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
@@ -17,7 +17,6 @@ from .const import DATA_COORDINATOR, DOMAIN
 from .coordinator import PrintStreamBridgeCoordinator
 from .entity import PrintStreamPrinterEntity, printer_unique_id
 
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -27,7 +26,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up image entities from a config entry."""
-    coordinator: PrintStreamBridgeCoordinator = hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR]
+    coordinator: PrintStreamBridgeCoordinator = hass.data[DOMAIN][entry.entry_id][
+        DATA_COORDINATOR
+    ]
     known_entities: set[str] = set()
 
     @callback
@@ -40,10 +41,20 @@ async def async_setup_entry(
                 continue
 
             image_entities: list[tuple[str, ImageEntity]] = [
-                ("cover_image", PrintStreamPrinterCoverImageEntity(coordinator, entry, printer_id)),
+                (
+                    "cover_image",
+                    PrintStreamPrinterCoverImageEntity(coordinator, entry, printer_id),
+                ),
             ]
             if printer.get("cameraSupported") is True:
-                image_entities.append(("camera_snapshot", PrintStreamPrinterCameraImageEntity(coordinator, entry, printer_id)))
+                image_entities.append(
+                    (
+                        "camera_snapshot",
+                        PrintStreamPrinterCameraImageEntity(
+                            coordinator, entry, printer_id
+                        ),
+                    )
+                )
 
             for suffix, entity in image_entities:
                 key = f"printer:{printer_id}:{suffix}"
@@ -65,7 +76,12 @@ class PrintStreamPrinterImageEntity(ImageEntity, PrintStreamPrinterEntity):
     _attr_should_poll = False
     _printstream_image_kind = "image"
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, printer_id: str) -> None:
+    def __init__(
+        self,
+        coordinator: PrintStreamBridgeCoordinator,
+        entry: ConfigEntry,
+        printer_id: str,
+    ) -> None:
         ImageEntity.__init__(self, coordinator.hass)
         PrintStreamPrinterEntity.__init__(self, coordinator, entry, printer_id)
         self._image_path: str | None = None
@@ -82,7 +98,10 @@ class PrintStreamPrinterImageEntity(ImageEntity, PrintStreamPrinterEntity):
 
         self._async_update_image_state()
 
-        if self._image_path != previous_path or self._attr_image_last_updated != previous_updated_at:
+        if (
+            self._image_path != previous_path
+            or self._attr_image_last_updated != previous_updated_at
+        ):
             self._cached_image = None
 
         super()._handle_coordinator_update()
@@ -93,7 +112,9 @@ class PrintStreamPrinterImageEntity(ImageEntity, PrintStreamPrinterEntity):
         self._attr_image_url = None
 
         observed = (self.printer or {}).get("observedAt")
-        self._attr_image_last_updated = dt_util.parse_datetime(observed) if isinstance(observed, str) else None
+        self._attr_image_last_updated = (
+            dt_util.parse_datetime(observed) if isinstance(observed, str) else None
+        )
 
     async def async_image(self) -> bytes | None:
         if not self._image_path:
@@ -102,7 +123,9 @@ class PrintStreamPrinterImageEntity(ImageEntity, PrintStreamPrinterEntity):
         try:
             return await self.coordinator.api.async_get_bytes(self._image_path)
         except PrintStreamBridgeApiError as err:
-            _LOGGER.debug("PrintStream image fetch failed for %s: %s", self.entity_id, err)
+            _LOGGER.debug(
+                "PrintStream image fetch failed for %s: %s", self.entity_id, err
+            )
             return None
 
     @property
@@ -128,9 +151,16 @@ class PrintStreamPrinterCoverImageEntity(PrintStreamPrinterImageEntity):
     _attr_content_type = "image/png"
     _printstream_image_kind = "cover"
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, printer_id: str) -> None:
+    def __init__(
+        self,
+        coordinator: PrintStreamBridgeCoordinator,
+        entry: ConfigEntry,
+        printer_id: str,
+    ) -> None:
         super().__init__(coordinator, entry, printer_id)
-        self._attr_unique_id = printer_unique_id(entry, self.printer, printer_id, "cover_image")
+        self._attr_unique_id = printer_unique_id(
+            entry, self.printer, printer_id, "cover_image"
+        )
 
     @property
     def _resolved_image_path(self) -> str | None:
@@ -145,9 +175,16 @@ class PrintStreamPrinterCameraImageEntity(PrintStreamPrinterImageEntity):
     _attr_content_type = "image/jpeg"
     _printstream_image_kind = "camera"
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, printer_id: str) -> None:
+    def __init__(
+        self,
+        coordinator: PrintStreamBridgeCoordinator,
+        entry: ConfigEntry,
+        printer_id: str,
+    ) -> None:
         super().__init__(coordinator, entry, printer_id)
-        self._attr_unique_id = printer_unique_id(entry, self.printer, printer_id, "camera_snapshot")
+        self._attr_unique_id = printer_unique_id(
+            entry, self.printer, printer_id, "camera_snapshot"
+        )
 
     @property
     def _resolved_image_path(self) -> str | None:
@@ -167,4 +204,12 @@ def _append_cache_buster(url: str, printer: dict[str, Any]) -> str:
 
     parts = urlsplit(url)
     separator = "&" if parts.query else "?"
-    return urlunsplit((parts.scheme, parts.netloc, parts.path, f"{parts.query}{separator if parts.query else ''}t={observed_at}", parts.fragment))
+    return urlunsplit(
+        (
+            parts.scheme,
+            parts.netloc,
+            parts.path,
+            f"{parts.query}{separator if parts.query else ''}t={observed_at}",
+            parts.fragment,
+        )
+    )

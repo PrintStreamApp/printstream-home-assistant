@@ -1,11 +1,15 @@
 """Binary sensor entities for the PrintStream bridge."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from homeassistant.components.binary_sensor import BinarySensorDeviceClass, BinarySensorEntity
+from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
+    BinarySensorEntity,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import EntityCategory
@@ -16,13 +20,13 @@ from .coordinator import PrintStreamBridgeCoordinator
 from .entity import (
     PrintStreamAmsEntity,
     PrintStreamPrinterEntity,
-    ams_unique_id,
     ams_slots,
-    printer_unique_id,
+    ams_unique_id,
     printer_ams_setting_available,
     printer_has_any_light,
     printer_print_option_supported,
     printer_supports_door_sensor,
+    printer_unique_id,
 )
 
 
@@ -86,73 +90,97 @@ _PRINTER_BINARY_SENSOR_DESCRIPTIONS: tuple[PrinterBinarySensorDescription, ...] 
         "ai_monitoring",
         "AI Monitoring",
         lambda printer: _print_option_enabled(printer, "aiMonitoring"),
-        predicate=lambda printer: printer_print_option_supported(printer, "aiMonitoring"),
+        predicate=lambda printer: printer_print_option_supported(
+            printer, "aiMonitoring"
+        ),
     ),
     PrinterBinarySensorDescription(
         "spaghetti_detection",
         "Spaghetti Detection",
         lambda printer: _print_option_enabled(printer, "spaghettiDetection"),
-        predicate=lambda printer: printer_print_option_supported(printer, "spaghettiDetection"),
+        predicate=lambda printer: printer_print_option_supported(
+            printer, "spaghettiDetection"
+        ),
     ),
     PrinterBinarySensorDescription(
         "purge_chute_pileup_detection",
         "Purge Chute Pileup Detection",
         lambda printer: _print_option_enabled(printer, "purgeChutePileupDetection"),
-        predicate=lambda printer: printer_print_option_supported(printer, "purgeChutePileupDetection"),
+        predicate=lambda printer: printer_print_option_supported(
+            printer, "purgeChutePileupDetection"
+        ),
     ),
     PrinterBinarySensorDescription(
         "nozzle_clumping_detection",
         "Nozzle Clumping Detection",
         lambda printer: _print_option_enabled(printer, "nozzleClumpingDetection"),
-        predicate=lambda printer: printer_print_option_supported(printer, "nozzleClumpingDetection"),
+        predicate=lambda printer: printer_print_option_supported(
+            printer, "nozzleClumpingDetection"
+        ),
     ),
     PrinterBinarySensorDescription(
         "air_printing_detection",
         "Air Printing Detection",
         lambda printer: _print_option_enabled(printer, "airPrintingDetection"),
-        predicate=lambda printer: printer_print_option_supported(printer, "airPrintingDetection"),
+        predicate=lambda printer: printer_print_option_supported(
+            printer, "airPrintingDetection"
+        ),
     ),
     PrinterBinarySensorDescription(
         "first_layer_inspection",
         "First Layer Inspection",
         lambda printer: _print_option_enabled(printer, "firstLayerInspection"),
-        predicate=lambda printer: printer_print_option_supported(printer, "firstLayerInspection"),
+        predicate=lambda printer: printer_print_option_supported(
+            printer, "firstLayerInspection"
+        ),
     ),
     PrinterBinarySensorDescription(
         "auto_recovery",
         "Auto Recovery",
         lambda printer: _print_option_enabled(printer, "autoRecovery"),
-        predicate=lambda printer: printer_print_option_supported(printer, "autoRecovery"),
+        predicate=lambda printer: printer_print_option_supported(
+            printer, "autoRecovery"
+        ),
     ),
     PrinterBinarySensorDescription(
         "prompt_sound",
         "Prompt Sound",
         lambda printer: _print_option_enabled(printer, "promptSound"),
-        predicate=lambda printer: printer_print_option_supported(printer, "promptSound"),
+        predicate=lambda printer: printer_print_option_supported(
+            printer, "promptSound"
+        ),
     ),
     PrinterBinarySensorDescription(
         "filament_tangle_detection",
         "Filament Tangle Detection",
         lambda printer: _print_option_enabled(printer, "filamentTangleDetection"),
-        predicate=lambda printer: printer_print_option_supported(printer, "filamentTangleDetection"),
+        predicate=lambda printer: printer_print_option_supported(
+            printer, "filamentTangleDetection"
+        ),
     ),
     PrinterBinarySensorDescription(
         "ams_detect_on_insert",
         "AMS Detect On Insert",
         lambda printer: _ams_setting_value(printer, "detectOnInsert"),
-        predicate=lambda printer: printer_ams_setting_available(printer, "detectOnInsert"),
+        predicate=lambda printer: printer_ams_setting_available(
+            printer, "detectOnInsert"
+        ),
     ),
     PrinterBinarySensorDescription(
         "ams_detect_on_powerup",
         "AMS Detect On Power-up",
         lambda printer: _ams_setting_value(printer, "detectOnPowerup"),
-        predicate=lambda printer: printer_ams_setting_available(printer, "detectOnPowerup"),
+        predicate=lambda printer: printer_ams_setting_available(
+            printer, "detectOnPowerup"
+        ),
     ),
     PrinterBinarySensorDescription(
         "ams_remain_enabled",
         "AMS Remain Enabled",
         lambda printer: _ams_setting_value(printer, "remainEnabled"),
-        predicate=lambda printer: printer_ams_setting_available(printer, "remainEnabled"),
+        predicate=lambda printer: printer_ams_setting_available(
+            printer, "remainEnabled"
+        ),
     ),
     PrinterBinarySensorDescription(
         "ams_auto_refill",
@@ -164,7 +192,9 @@ _PRINTER_BINARY_SENSOR_DESCRIPTIONS: tuple[PrinterBinarySensorDescription, ...] 
         "filament_backup_supported",
         "Filament Backup Supported",
         lambda printer: _ams_setting_value(printer, "supportFilamentBackup"),
-        predicate=lambda printer: _ams_setting_value(printer, "supportFilamentBackup") is True,
+        predicate=lambda printer: (
+            _ams_setting_value(printer, "supportFilamentBackup") is True
+        ),
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
 )
@@ -182,8 +212,12 @@ _AMS_BINARY_SENSOR_DESCRIPTIONS: tuple[AmsBinarySensorDescription, ...] = (
 
 
 _AMS_SLOT_BINARY_SENSOR_DESCRIPTIONS: tuple[AmsSlotBinarySensorDescription, ...] = (
-    AmsSlotBinarySensorDescription("active", "Active", lambda slot: _bool_value(slot.get("active"))),
-    AmsSlotBinarySensorDescription("reading", "Reading", lambda slot: _bool_value(slot.get("isReading"))),
+    AmsSlotBinarySensorDescription(
+        "active", "Active", lambda slot: _bool_value(slot.get("active"))
+    ),
+    AmsSlotBinarySensorDescription(
+        "reading", "Reading", lambda slot: _bool_value(slot.get("isReading"))
+    ),
 )
 
 
@@ -193,7 +227,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up binary sensor entities from a config entry."""
-    coordinator: PrintStreamBridgeCoordinator = hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR]
+    coordinator: PrintStreamBridgeCoordinator = hass.data[DOMAIN][entry.entry_id][
+        DATA_COORDINATOR
+    ]
     known_entities: set[str] = set()
 
     @callback
@@ -208,7 +244,9 @@ async def async_setup_entry(
             key = f"printer:{printer_id}:online"
             if key not in known_entities:
                 known_entities.add(key)
-                new_entities.append(PrintStreamPrinterOnlineBinarySensor(coordinator, entry, printer_id))
+                new_entities.append(
+                    PrintStreamPrinterOnlineBinarySensor(coordinator, entry, printer_id)
+                )
 
             for description in _PRINTER_BINARY_SENSOR_DESCRIPTIONS:
                 if not description.predicate(printer):
@@ -217,7 +255,11 @@ async def async_setup_entry(
                 if printer_key in known_entities:
                     continue
                 known_entities.add(printer_key)
-                new_entities.append(PrintStreamPrinterMappedBinarySensor(coordinator, entry, printer_id, description))
+                new_entities.append(
+                    PrintStreamPrinterMappedBinarySensor(
+                        coordinator, entry, printer_id, description
+                    )
+                )
 
             for ams in printer.get("ams", []):
                 if not isinstance(ams, dict):
@@ -229,7 +271,9 @@ async def async_setup_entry(
                     ams_key = f"ams:{ams_id}:drying"
                     if ams_key not in known_entities:
                         known_entities.add(ams_key)
-                        new_entities.append(PrintStreamAmsDryingBinarySensor(coordinator, entry, ams_id))
+                        new_entities.append(
+                            PrintStreamAmsDryingBinarySensor(coordinator, entry, ams_id)
+                        )
 
                 for description in _AMS_BINARY_SENSOR_DESCRIPTIONS:
                     if not description.predicate(ams):
@@ -238,14 +282,20 @@ async def async_setup_entry(
                     if extra_ams_key in known_entities:
                         continue
                     known_entities.add(extra_ams_key)
-                    new_entities.append(PrintStreamAmsMappedBinarySensor(coordinator, entry, ams_id, description))
+                    new_entities.append(
+                        PrintStreamAmsMappedBinarySensor(
+                            coordinator, entry, ams_id, description
+                        )
+                    )
 
                 for slot in ams_slots(ams):
                     slot_index = slot.get("slot")
                     if not isinstance(slot_index, int):
                         continue
                     for description in _AMS_SLOT_BINARY_SENSOR_DESCRIPTIONS:
-                        slot_key = f"ams:{ams_id}:slot:{slot_index}:{description.suffix}"
+                        slot_key = (
+                            f"ams:{ams_id}:slot:{slot_index}:{description.suffix}"
+                        )
                         if slot_key in known_entities:
                             continue
                         known_entities.add(slot_key)
@@ -266,15 +316,24 @@ async def async_setup_entry(
     entry.async_on_unload(coordinator.async_add_listener(_async_sync_entities))
 
 
-class PrintStreamPrinterOnlineBinarySensor(PrintStreamPrinterEntity, BinarySensorEntity):
+class PrintStreamPrinterOnlineBinarySensor(
+    PrintStreamPrinterEntity, BinarySensorEntity
+):
     """Connectivity binary sensor for a printer."""
 
     _attr_name = "Online"
     _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, printer_id: str) -> None:
+    def __init__(
+        self,
+        coordinator: PrintStreamBridgeCoordinator,
+        entry: ConfigEntry,
+        printer_id: str,
+    ) -> None:
         super().__init__(coordinator, entry, printer_id)
-        self._attr_unique_id = printer_unique_id(entry, self.printer, printer_id, "online")
+        self._attr_unique_id = printer_unique_id(
+            entry, self.printer, printer_id, "online"
+        )
 
     @property
     def is_on(self) -> bool | None:
@@ -289,7 +348,9 @@ class PrintStreamAmsDryingBinarySensor(PrintStreamAmsEntity, BinarySensorEntity)
 
     _attr_name = "Drying"
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, ams_id: str) -> None:
+    def __init__(
+        self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, ams_id: str
+    ) -> None:
         super().__init__(coordinator, entry, ams_id)
         self._attr_unique_id = ams_unique_id(entry, self.ams, ams_id, "drying")
 
@@ -301,7 +362,9 @@ class PrintStreamAmsDryingBinarySensor(PrintStreamAmsEntity, BinarySensorEntity)
         return bool(ams.get("dryingActive"))
 
 
-class PrintStreamPrinterMappedBinarySensor(PrintStreamPrinterEntity, BinarySensorEntity):
+class PrintStreamPrinterMappedBinarySensor(
+    PrintStreamPrinterEntity, BinarySensorEntity
+):
     """Generic printer boolean sensor backed by bridge state."""
 
     def __init__(
@@ -314,7 +377,9 @@ class PrintStreamPrinterMappedBinarySensor(PrintStreamPrinterEntity, BinarySenso
         super().__init__(coordinator, entry, printer_id)
         self._description = description
         self._attr_name = description.name
-        self._attr_unique_id = printer_unique_id(entry, self.printer, printer_id, description.suffix)
+        self._attr_unique_id = printer_unique_id(
+            entry, self.printer, printer_id, description.suffix
+        )
         self._attr_device_class = description.device_class
         self._attr_entity_category = description.entity_category
 
@@ -339,7 +404,9 @@ class PrintStreamAmsMappedBinarySensor(PrintStreamAmsEntity, BinarySensorEntity)
         super().__init__(coordinator, entry, ams_id)
         self._description = description
         self._attr_name = description.name
-        self._attr_unique_id = ams_unique_id(entry, self.ams, ams_id, description.suffix)
+        self._attr_unique_id = ams_unique_id(
+            entry, self.ams, ams_id, description.suffix
+        )
         self._attr_device_class = description.device_class
         self._attr_entity_category = description.entity_category
 
@@ -366,7 +433,9 @@ class PrintStreamAmsSlotMappedBinarySensor(PrintStreamAmsEntity, BinarySensorEnt
         self._slot_index = slot_index
         self._description = description
         self._attr_name = f"Tray {slot_index + 1} {description.name}"
-        self._attr_unique_id = ams_unique_id(entry, self.ams, ams_id, f"tray_{slot_index + 1}_{description.suffix}")
+        self._attr_unique_id = ams_unique_id(
+            entry, self.ams, ams_id, f"tray_{slot_index + 1}_{description.suffix}"
+        )
         self._attr_device_class = description.device_class
         self._attr_entity_category = description.entity_category
 

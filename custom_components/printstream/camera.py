@@ -6,6 +6,7 @@ single multipart/x-mixed-replace MJPEG stream at ``cameraStreamPath`` and a
 single JPEG at ``cameraSnapshotPath``; this entity forwards both to Home
 Assistant so the live feed is available alongside the snapshot image entity.
 """
+
 from __future__ import annotations
 
 import logging
@@ -23,7 +24,6 @@ from .const import DATA_COORDINATOR, DOMAIN
 from .coordinator import PrintStreamBridgeCoordinator
 from .entity import PrintStreamPrinterEntity, printer_unique_id
 
-
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -33,7 +33,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up camera entities from a config entry."""
-    coordinator: PrintStreamBridgeCoordinator = hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR]
+    coordinator: PrintStreamBridgeCoordinator = hass.data[DOMAIN][entry.entry_id][
+        DATA_COORDINATOR
+    ]
     known_entities: set[str] = set()
 
     @callback
@@ -51,7 +53,9 @@ async def async_setup_entry(
             if key in known_entities:
                 continue
             known_entities.add(key)
-            new_entities.append(PrintStreamPrinterCameraEntity(coordinator, entry, printer_id))
+            new_entities.append(
+                PrintStreamPrinterCameraEntity(coordinator, entry, printer_id)
+            )
 
         if new_entities:
             async_add_entities(new_entities)
@@ -65,10 +69,17 @@ class PrintStreamPrinterCameraEntity(Camera, PrintStreamPrinterEntity):
 
     _attr_name = "Camera"
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, printer_id: str) -> None:
+    def __init__(
+        self,
+        coordinator: PrintStreamBridgeCoordinator,
+        entry: ConfigEntry,
+        printer_id: str,
+    ) -> None:
         Camera.__init__(self)
         PrintStreamPrinterEntity.__init__(self, coordinator, entry, printer_id)
-        self._attr_unique_id = printer_unique_id(entry, self.printer, printer_id, "camera")
+        self._attr_unique_id = printer_unique_id(
+            entry, self.printer, printer_id, "camera"
+        )
 
     @property
     def available(self) -> bool:
@@ -82,17 +93,23 @@ class PrintStreamPrinterCameraEntity(Camera, PrintStreamPrinterEntity):
     def _snapshot_path(self) -> str | None:
         return _string_path((self.printer or {}).get("cameraSnapshotPath"))
 
-    async def async_camera_image(self, width: int | None = None, height: int | None = None) -> bytes | None:
+    async def async_camera_image(
+        self, width: int | None = None, height: int | None = None
+    ) -> bytes | None:
         snapshot_path = self._snapshot_path
         if not snapshot_path:
             return None
         try:
             return await self.coordinator.api.async_get_bytes(snapshot_path)
         except PrintStreamBridgeApiError as err:
-            _LOGGER.debug("PrintStream camera snapshot failed for %s: %s", self.entity_id, err)
+            _LOGGER.debug(
+                "PrintStream camera snapshot failed for %s: %s", self.entity_id, err
+            )
             return None
 
-    async def handle_async_mjpeg_stream(self, request: web.Request) -> web.StreamResponse | None:
+    async def handle_async_mjpeg_stream(
+        self, request: web.Request
+    ) -> web.StreamResponse | None:
         stream_path = self._stream_path
         if not stream_path:
             return None

@@ -1,4 +1,5 @@
 """HTTP + WebSocket client for the PrintStream Home Assistant bridge."""
+
 from __future__ import annotations
 
 import asyncio
@@ -12,10 +13,25 @@ class PrintStreamBridgeApiError(Exception):
     """Raised when the PrintStream bridge cannot be reached or parsed."""
 
 
+class PrintStreamAuthError(PrintStreamBridgeApiError):
+    """Raised when PrintStream rejects the access token.
+
+    401 means the token is missing, wrong or revoked; 403 means it lacks the permission the
+    Home Assistant plugin needs. Either way only a new token fixes it, so callers start
+    re-authentication instead of retrying.
+    """
+
+
+# Statuses that mean the token, not the request or the server, is the problem.
+AUTH_FAILURE_STATUSES = (401, 403)
+
+
 class PrintStreamBridgeApiClient:
     """Client for the bridge snapshot endpoint and WebSocket stream."""
 
-    def __init__(self, base_url: str, session: ClientSession, access_token: str | None = None) -> None:
+    def __init__(
+        self, base_url: str, session: ClientSession, access_token: str | None = None
+    ) -> None:
         self._base_url = normalize_base_url(base_url)
         self._session = session
         self._access_token = normalize_access_token(access_token)
@@ -41,32 +57,41 @@ class PrintStreamBridgeApiClient:
         """Fetch the Home Assistant bridge snapshot from PrintStream."""
         payload = await self.async_get_json("/api/plugins/home-assistant/snapshot")
 
-        if not isinstance(payload, dict) or not isinstance(payload.get("printers"), list):
-            raise PrintStreamBridgeApiError("PrintStream returned an unexpected bridge payload")
+        if not isinstance(payload, dict) or not isinstance(
+            payload.get("printers"), list
+        ):
+            raise PrintStreamBridgeApiError(
+                "PrintStream returned an unexpected bridge payload"
+            )
 
         return payload
 
-    async def async_get_json(self, path: str, query: dict[str, str | None] | None = None) -> Any:
+    async def async_get_json(
+        self, path: str, query: dict[str, str | None] | None = None
+    ) -> Any:
         """Fetch a JSON or text payload from PrintStream."""
         url = build_url(self._base_url, path)
         if query:
-            encoded = urlencode({key: value for key, value in query.items() if value is not None})
+            encoded = urlencode(
+                {key: value for key, value in query.items() if value is not None}
+            )
             if encoded:
                 url = f"{url}?{encoded}"
 
         try:
             async with asyncio.timeout(10):
-                response = await self._session.get(url, headers=self.auth_headers or None)
+                response = await self._session.get(
+                    url, headers=self.auth_headers or None
+                )
                 payload = await _read_payload(response)
         except TimeoutError as err:
-            raise PrintStreamBridgeApiError("Timed out while contacting PrintStream") from err
+            raise PrintStreamBridgeApiError(
+                "Timed out while contacting PrintStream"
+            ) from err
         except ClientError as err:
             raise PrintStreamBridgeApiError(f"Request failed: {err}") from err
 
-        if response.status >= 400:
-            message = _extract_error_message(payload) or f"PrintStream returned HTTP {response.status}"
-            raise PrintStreamBridgeApiError(message)
-
+        _raise_for_status(response.status, payload)
         return payload
 
     async def async_post_json(self, path: str, payload: dict[str, Any]) -> Any:
@@ -75,17 +100,18 @@ class PrintStreamBridgeApiClient:
 
         try:
             async with asyncio.timeout(10):
-                response = await self._session.post(url, json=payload, headers=self.auth_headers or None)
+                response = await self._session.post(
+                    url, json=payload, headers=self.auth_headers or None
+                )
                 response_payload = await _read_payload(response)
         except TimeoutError as err:
-            raise PrintStreamBridgeApiError("Timed out while contacting PrintStream") from err
+            raise PrintStreamBridgeApiError(
+                "Timed out while contacting PrintStream"
+            ) from err
         except ClientError as err:
             raise PrintStreamBridgeApiError(f"Request failed: {err}") from err
 
-        if response.status >= 400:
-            message = _extract_error_message(response_payload) or f"PrintStream returned HTTP {response.status}"
-            raise PrintStreamBridgeApiError(message)
-
+        _raise_for_status(response.status, response_payload)
         return response_payload
 
     async def async_get_bytes(self, path: str) -> bytes:
@@ -94,20 +120,38 @@ class PrintStreamBridgeApiClient:
 
         try:
             async with asyncio.timeout(10):
-                response = await self._session.get(url, headers=self.auth_headers or None)
+                response = await self._session.get(
+                    url, headers=self.auth_headers or None
+                )
                 if response.status >= 400:
-                    payload = await _read_payload(response)
-                    message = _extract_error_message(payload) or f"PrintStream returned HTTP {response.status}"
-                    raise PrintStreamBridgeApiError(message)
+                    _raise_for_status(response.status, await _read_payload(response))
                 return await response.read()
         except TimeoutError as err:
-            raise PrintStreamBridgeApiError("Timed out while contacting PrintStream") from err
+            raise PrintStreamBridgeApiError(
+                "Timed out while contacting PrintStream"
+            ) from err
         except ClientError as err:
             raise PrintStreamBridgeApiError(f"Request failed: {err}") from err
 
-    async def async_send_printer_command(self, printer_id: str, command: dict[str, Any]) -> None:
+    async def async_send_printer_command(
+        self, printer_id: str, command: dict[str, Any]
+    ) -> None:
         """Dispatch a printer command through the bridge API."""
         await self.async_post_json(f"/api/printers/{printer_id}/command", command)
+
+
+def _raise_for_status(status: int, payload: Any) -> None:
+    """Raise the matching client error for an HTTP error status; return for success.
+
+    The server's own error text is kept when it sent one. Rejected tokens raise
+    PrintStreamAuthError so callers can ask for a new one.
+    """
+    if status < 400:
+        return
+    message = _extract_error_message(payload) or f"PrintStream returned HTTP {status}"
+    if status in AUTH_FAILURE_STATUSES:
+        raise PrintStreamAuthError(message)
+    raise PrintStreamBridgeApiError(message)
 
 
 def normalize_base_url(value: str) -> str:

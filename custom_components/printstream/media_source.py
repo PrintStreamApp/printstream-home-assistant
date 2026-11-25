@@ -1,11 +1,18 @@
 """Media source support for browsing the PrintStream library."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlencode
 
-from homeassistant.components.media_source.models import BrowseMediaSource, MediaSource, MediaSourceItem, PlayMedia
+from homeassistant.components.media_source.models import (
+    BrowseMediaSource,
+    MediaSource,
+    MediaSourceItem,
+    PlayMedia,
+)
+
 try:
     from homeassistant.components.media_player import BrowseError
 except ImportError:  # pragma: no cover - compatibility for alternate HA layouts
@@ -14,7 +21,6 @@ from homeassistant.core import HomeAssistant
 
 from .api import PrintStreamBridgeApiClient, PrintStreamBridgeApiError, build_url
 from .const import DATA_COORDINATOR, DOMAIN
-
 
 MEDIA_TYPE_FILE = "file"
 MEDIA_TYPE_FOLDER = "folder"
@@ -74,7 +80,14 @@ class PrintStreamLibraryMediaSource(MediaSource):
 
         folder_name = None
         if folder_id:
-            folder_name = next((folder.get("name") for folder in result.folders if folder.get("id") == folder_id), None)
+            folder_name = next(
+                (
+                    folder.get("name")
+                    for folder in result.folders
+                    if folder.get("id") == folder_id
+                ),
+                None,
+            )
 
         return BrowseMediaSource(
             domain=DOMAIN,
@@ -92,16 +105,22 @@ class PrintStreamLibraryMediaSource(MediaSource):
         )
 
 
-async def _async_browse_library(api: PrintStreamBridgeApiClient, folder_id: str | None) -> _LibraryBrowseResult:
+async def _async_browse_library(
+    api: PrintStreamBridgeApiClient, folder_id: str | None
+) -> _LibraryBrowseResult:
     try:
         folders_payload = await api.async_get_json("/api/library/folders")
         files_payload = await api.async_get_json(
-            "/api/library" if folder_id is None else f"/api/library?{urlencode({'folderId': folder_id})}"
+            "/api/library"
+            if folder_id is None
+            else f"/api/library?{urlencode({'folderId': folder_id})}"
         )
     except PrintStreamBridgeApiError as err:
         raise BrowseError(str(err)) from err
 
-    folders = folders_payload.get("folders", []) if isinstance(folders_payload, dict) else []
+    folders = (
+        folders_payload.get("folders", []) if isinstance(folders_payload, dict) else []
+    )
     files = files_payload.get("files", []) if isinstance(files_payload, dict) else []
     return _LibraryBrowseResult(
         folders=[folder for folder in folders if isinstance(folder, dict)],
@@ -137,7 +156,9 @@ def _folder_children(
     return children
 
 
-def _file_children(api: PrintStreamBridgeApiClient, files: list[dict[str, Any]], entry_id: str | None) -> list[BrowseMediaSource]:
+def _file_children(
+    api: PrintStreamBridgeApiClient, files: list[dict[str, Any]], entry_id: str | None
+) -> list[BrowseMediaSource]:
     children: list[BrowseMediaSource] = []
     for file in files:
         file_id = file.get("id")
@@ -178,14 +199,20 @@ def _entry_children(hass: HomeAssistant) -> list[BrowseMediaSource]:
     ]
 
 
-def _get_api_client(hass: HomeAssistant, entry_id: str | None) -> PrintStreamBridgeApiClient:
+def _get_api_client(
+    hass: HomeAssistant, entry_id: str | None
+) -> PrintStreamBridgeApiClient:
     entries = hass.data.get(DOMAIN, {})
     if not isinstance(entries, dict) or not entries:
         raise BrowseError("PrintStream is not configured")
 
     if entry_id is not None:
         selected_entry = entries.get(entry_id)
-        coordinator = selected_entry.get(DATA_COORDINATOR) if isinstance(selected_entry, dict) else None
+        coordinator = (
+            selected_entry.get(DATA_COORDINATOR)
+            if isinstance(selected_entry, dict)
+            else None
+        )
         if coordinator is None or not hasattr(coordinator, "api"):
             raise BrowseError("Selected PrintStream connection is not ready")
         return coordinator.api
@@ -194,7 +221,9 @@ def _get_api_client(hass: HomeAssistant, entry_id: str | None) -> PrintStreamBri
         raise BrowseError("Select a PrintStream connection first")
 
     first_entry = next(iter(entries.values()), None)
-    coordinator = first_entry.get(DATA_COORDINATOR) if isinstance(first_entry, dict) else None
+    coordinator = (
+        first_entry.get(DATA_COORDINATOR) if isinstance(first_entry, dict) else None
+    )
     if coordinator is None or not hasattr(coordinator, "api"):
         raise BrowseError("PrintStream is not ready")
     return coordinator.api
@@ -207,7 +236,6 @@ def _parse_identifier(identifier: str | None) -> tuple[str | None, str, str | No
     parts = identifier.split("|")
     entry_id: str | None = None
     kind = MEDIA_TYPE_FOLDER
-    value: str | None = None
 
     if parts and parts[0].startswith(f"{MEDIA_TYPE_ENTRY}:"):
         _, entry_value = parts[0].split(":", 1)
@@ -225,7 +253,9 @@ def _parse_identifier(identifier: str | None) -> tuple[str | None, str, str | No
     return (entry_id, kind, raw_value or None)
 
 
-def _build_identifier(entry_id: str | None, kind: str | None = None, value: str | None = None) -> str:
+def _build_identifier(
+    entry_id: str | None, kind: str | None = None, value: str | None = None
+) -> str:
     parts: list[str] = []
     if entry_id:
         parts.append(f"{MEDIA_TYPE_ENTRY}:{entry_id}")

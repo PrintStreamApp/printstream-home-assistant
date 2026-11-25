@@ -1,4 +1,5 @@
 """Sensor entities for the PrintStream bridge."""
+
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -19,9 +20,8 @@ from .coordinator import PrintStreamBridgeCoordinator
 from .entity import (
     PrintStreamAmsEntity,
     PrintStreamPrinterEntity,
-    ams_unique_id,
     ams_slots,
-    printer_unique_id,
+    ams_unique_id,
     printer_external_spools,
     printer_has_light_node,
     printer_nozzles,
@@ -31,8 +31,8 @@ from .entity import (
     printer_supports_chamber_temperature,
     printer_supports_door_sensor,
     printer_supports_dual_nozzles,
+    printer_unique_id,
 )
-
 
 _GENERIC_FILAMENT_LABELS = {
     "ABS",
@@ -158,8 +158,16 @@ class AmsSlotSensorDescription:
 
 
 _PRINTER_SENSOR_DESCRIPTIONS: tuple[PrinterSensorDescription, ...] = (
-    PrinterSensorDescription("current_layer", "Current Layer", lambda printer: _number_value(printer.get("currentLayer"))),
-    PrinterSensorDescription("total_layers", "Total Layers", lambda printer: _number_value(printer.get("totalLayers"))),
+    PrinterSensorDescription(
+        "current_layer",
+        "Current Layer",
+        lambda printer: _number_value(printer.get("currentLayer")),
+    ),
+    PrinterSensorDescription(
+        "total_layers",
+        "Total Layers",
+        lambda printer: _number_value(printer.get("totalLayers")),
+    ),
     PrinterSensorDescription(
         "remaining_time",
         "Remaining Time",
@@ -167,10 +175,22 @@ _PRINTER_SENSOR_DESCRIPTIONS: tuple[PrinterSensorDescription, ...] = (
         native_unit_of_measurement=UnitOfTime.MINUTES,
         device_class=SensorDeviceClass.DURATION,
     ),
-    PrinterSensorDescription("sub_stage", "Sub Stage", lambda printer: _string_value(printer.get("subStage"))),
-    PrinterSensorDescription("job_name", "Job Name", lambda printer: _string_value(printer.get("jobName"))),
-    PrinterSensorDescription("last_job_name", "Last Job Name", lambda printer: _string_value(printer.get("lastJobName"))),
-    PrinterSensorDescription("gcode_file", "Gcode File", lambda printer: _string_value(printer.get("gcodeFile"))),
+    PrinterSensorDescription(
+        "sub_stage", "Sub Stage", lambda printer: _string_value(printer.get("subStage"))
+    ),
+    PrinterSensorDescription(
+        "job_name", "Job Name", lambda printer: _string_value(printer.get("jobName"))
+    ),
+    PrinterSensorDescription(
+        "last_job_name",
+        "Last Job Name",
+        lambda printer: _string_value(printer.get("lastJobName")),
+    ),
+    PrinterSensorDescription(
+        "gcode_file",
+        "Gcode File",
+        lambda printer: _string_value(printer.get("gcodeFile")),
+    ),
     PrinterSensorDescription(
         "nozzle_target_temperature",
         "Nozzle Target Temperature",
@@ -185,7 +205,11 @@ _PRINTER_SENSOR_DESCRIPTIONS: tuple[PrinterSensorDescription, ...] = (
         device_class=SensorDeviceClass.TEMPERATURE,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
     ),
-    PrinterSensorDescription("fan_gear_speed", "Fan Gear Speed", lambda printer: _number_value(printer.get("fanGearSpeed"))),
+    PrinterSensorDescription(
+        "fan_gear_speed",
+        "Fan Gear Speed",
+        lambda printer: _number_value(printer.get("fanGearSpeed")),
+    ),
     PrinterSensorDescription(
         "wifi_signal",
         "Wi-Fi Signal",
@@ -300,12 +324,38 @@ _AMS_SENSOR_DESCRIPTIONS: tuple[AmsSensorDescription, ...] = (
 
 
 _AMS_SLOT_SENSOR_DESCRIPTIONS: tuple[AmsSlotSensorDescription, ...] = (
-    AmsSlotSensorDescription("remain_percent", "Remain", lambda slot: _number_value(slot.get("remainPercent")), native_unit_of_measurement=PERCENTAGE),
-    AmsSlotSensorDescription("raw_tray_code", "Raw Tray Code", lambda slot: _resolve_ams_slot_display(slot)["raw_tray_code"], entity_category=EntityCategory.DIAGNOSTIC),
-    AmsSlotSensorDescription("color_hex", "Color Hex", lambda slot: _resolve_ams_slot_display(slot)["color_hex"]),
-    AmsSlotSensorDescription("tray_info_idx", "Tray Info Index", lambda slot: _string_value(slot.get("trayInfoIdx")), entity_category=EntityCategory.DIAGNOSTIC),
-    AmsSlotSensorDescription("k_value", "K Value", lambda slot: _number_value(slot.get("k"))),
-    AmsSlotSensorDescription("tray_uuid", "Tray UUID", lambda slot: _string_value(slot.get("trayUuid")), entity_category=EntityCategory.DIAGNOSTIC),
+    AmsSlotSensorDescription(
+        "remain_percent",
+        "Remain",
+        lambda slot: _number_value(slot.get("remainPercent")),
+        native_unit_of_measurement=PERCENTAGE,
+    ),
+    AmsSlotSensorDescription(
+        "raw_tray_code",
+        "Raw Tray Code",
+        lambda slot: _resolve_ams_slot_display(slot)["raw_tray_code"],
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    AmsSlotSensorDescription(
+        "color_hex",
+        "Color Hex",
+        lambda slot: _resolve_ams_slot_display(slot)["color_hex"],
+    ),
+    AmsSlotSensorDescription(
+        "tray_info_idx",
+        "Tray Info Index",
+        lambda slot: _string_value(slot.get("trayInfoIdx")),
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    AmsSlotSensorDescription(
+        "k_value", "K Value", lambda slot: _number_value(slot.get("k"))
+    ),
+    AmsSlotSensorDescription(
+        "tray_uuid",
+        "Tray UUID",
+        lambda slot: _string_value(slot.get("trayUuid")),
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
 )
 
 
@@ -315,7 +365,9 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up sensor entities from a config entry."""
-    coordinator: PrintStreamBridgeCoordinator = hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR]
+    coordinator: PrintStreamBridgeCoordinator = hass.data[DOMAIN][entry.entry_id][
+        DATA_COORDINATOR
+    ]
     known_entities: set[str] = set()
 
     @callback
@@ -328,15 +380,77 @@ async def async_setup_entry(
                 continue
 
             for suffix, predicate, entity in (
-                ("status", _always_true, PrintStreamPrinterStatusSensor(coordinator, entry, printer_id)),
-                ("progress", _always_true, PrintStreamPrinterProgressSensor(coordinator, entry, printer_id)),
-                ("nozzle_temperature", _always_true, PrintStreamPrinterTemperatureSensor(coordinator, entry, printer_id, "Nozzle Temperature", "nozzleTemp")),
-                ("bed_temperature", _always_true, PrintStreamPrinterTemperatureSensor(coordinator, entry, printer_id, "Bed Temperature", "bedTemp")),
-                ("chamber_temperature", printer_supports_chamber_temperature, PrintStreamPrinterTemperatureSensor(coordinator, entry, printer_id, "Chamber Temperature", "chamberTemp")),
-                ("part_fan", _always_true, PrintStreamPrinterPercentSensor(coordinator, entry, printer_id, "Part Fan", "partFanPercent")),
-                ("aux_fan", printer_supports_aux_fan, PrintStreamPrinterPercentSensor(coordinator, entry, printer_id, "Aux Fan", "auxFanPercent")),
-                ("chamber_fan", printer_supports_chamber_fan, PrintStreamPrinterPercentSensor(coordinator, entry, printer_id, "Chamber Fan", "chamberFanPercent")),
-                ("speed_level", _always_true, PrintStreamPrinterValueSensor(coordinator, entry, printer_id, "Speed Level", "speedLevel")),
+                (
+                    "status",
+                    _always_true,
+                    PrintStreamPrinterStatusSensor(coordinator, entry, printer_id),
+                ),
+                (
+                    "progress",
+                    _always_true,
+                    PrintStreamPrinterProgressSensor(coordinator, entry, printer_id),
+                ),
+                (
+                    "nozzle_temperature",
+                    _always_true,
+                    PrintStreamPrinterTemperatureSensor(
+                        coordinator,
+                        entry,
+                        printer_id,
+                        "Nozzle Temperature",
+                        "nozzleTemp",
+                    ),
+                ),
+                (
+                    "bed_temperature",
+                    _always_true,
+                    PrintStreamPrinterTemperatureSensor(
+                        coordinator, entry, printer_id, "Bed Temperature", "bedTemp"
+                    ),
+                ),
+                (
+                    "chamber_temperature",
+                    printer_supports_chamber_temperature,
+                    PrintStreamPrinterTemperatureSensor(
+                        coordinator,
+                        entry,
+                        printer_id,
+                        "Chamber Temperature",
+                        "chamberTemp",
+                    ),
+                ),
+                (
+                    "part_fan",
+                    _always_true,
+                    PrintStreamPrinterPercentSensor(
+                        coordinator, entry, printer_id, "Part Fan", "partFanPercent"
+                    ),
+                ),
+                (
+                    "aux_fan",
+                    printer_supports_aux_fan,
+                    PrintStreamPrinterPercentSensor(
+                        coordinator, entry, printer_id, "Aux Fan", "auxFanPercent"
+                    ),
+                ),
+                (
+                    "chamber_fan",
+                    printer_supports_chamber_fan,
+                    PrintStreamPrinterPercentSensor(
+                        coordinator,
+                        entry,
+                        printer_id,
+                        "Chamber Fan",
+                        "chamberFanPercent",
+                    ),
+                ),
+                (
+                    "speed_level",
+                    _always_true,
+                    PrintStreamPrinterValueSensor(
+                        coordinator, entry, printer_id, "Speed Level", "speedLevel"
+                    ),
+                ),
             ):
                 if not predicate(printer):
                     continue
@@ -353,7 +467,11 @@ async def async_setup_entry(
                 if key in known_entities:
                     continue
                 known_entities.add(key)
-                new_entities.append(PrintStreamPrinterMappedSensor(coordinator, entry, printer_id, description))
+                new_entities.append(
+                    PrintStreamPrinterMappedSensor(
+                        coordinator, entry, printer_id, description
+                    )
+                )
 
             if printer_supports_dual_nozzles(printer):
                 for nozzle in printer_nozzles(printer):
@@ -361,8 +479,16 @@ async def async_setup_entry(
                     if not isinstance(extruder_id, int):
                         continue
                     for suffix, name, target_field in (
-                        (f"nozzle_{extruder_id + 1}_temperature", f"Nozzle {extruder_id + 1} Temperature", "currentTemp"),
-                        (f"nozzle_{extruder_id + 1}_target_temperature", f"Nozzle {extruder_id + 1} Target Temperature", "targetTemp"),
+                        (
+                            f"nozzle_{extruder_id + 1}_temperature",
+                            f"Nozzle {extruder_id + 1} Temperature",
+                            "currentTemp",
+                        ),
+                        (
+                            f"nozzle_{extruder_id + 1}_target_temperature",
+                            f"Nozzle {extruder_id + 1} Target Temperature",
+                            "targetTemp",
+                        ),
                     ):
                         key = f"printer:{printer_id}:{suffix}"
                         if key in known_entities:
@@ -387,7 +513,11 @@ async def async_setup_entry(
                 if key in known_entities:
                     continue
                 known_entities.add(key)
-                new_entities.append(PrintStreamPrinterExternalSpoolSensor(coordinator, entry, printer_id, spool_id))
+                new_entities.append(
+                    PrintStreamPrinterExternalSpoolSensor(
+                        coordinator, entry, printer_id, spool_id
+                    )
+                )
 
             for ams in printer.get("ams", []):
                 if not isinstance(ams, dict):
@@ -396,10 +526,26 @@ async def async_setup_entry(
                 if not ams_id:
                     continue
                 for suffix, predicate, entity in (
-                    ("status", _always_true, PrintStreamAmsStatusSensor(coordinator, entry, ams_id)),
-                    ("temperature", _always_true, PrintStreamAmsTemperatureSensor(coordinator, entry, ams_id)),
-                    ("humidity", lambda unit: unit.get("humidityPercent") is not None, PrintStreamAmsHumiditySensor(coordinator, entry, ams_id)),
-                    ("active_slot", _always_true, PrintStreamAmsActiveSlotSensor(coordinator, entry, ams_id)),
+                    (
+                        "status",
+                        _always_true,
+                        PrintStreamAmsStatusSensor(coordinator, entry, ams_id),
+                    ),
+                    (
+                        "temperature",
+                        _always_true,
+                        PrintStreamAmsTemperatureSensor(coordinator, entry, ams_id),
+                    ),
+                    (
+                        "humidity",
+                        lambda unit: unit.get("humidityPercent") is not None,
+                        PrintStreamAmsHumiditySensor(coordinator, entry, ams_id),
+                    ),
+                    (
+                        "active_slot",
+                        _always_true,
+                        PrintStreamAmsActiveSlotSensor(coordinator, entry, ams_id),
+                    ),
                 ):
                     if not predicate(ams):
                         continue
@@ -416,7 +562,11 @@ async def async_setup_entry(
                     if key in known_entities:
                         continue
                     known_entities.add(key)
-                    new_entities.append(PrintStreamAmsMappedSensor(coordinator, entry, ams_id, description))
+                    new_entities.append(
+                        PrintStreamAmsMappedSensor(
+                            coordinator, entry, ams_id, description
+                        )
+                    )
 
                 for slot in ams_slots(ams):
                     if not isinstance(slot, dict):
@@ -428,14 +578,22 @@ async def async_setup_entry(
                     if key in known_entities:
                         continue
                     known_entities.add(key)
-                    new_entities.append(PrintStreamAmsSlotSensor(coordinator, entry, ams_id, slot_index))
+                    new_entities.append(
+                        PrintStreamAmsSlotSensor(coordinator, entry, ams_id, slot_index)
+                    )
 
                     for description in _AMS_SLOT_SENSOR_DESCRIPTIONS:
-                        slot_key = f"ams:{ams_id}:slot:{slot_index}:{description.suffix}"
+                        slot_key = (
+                            f"ams:{ams_id}:slot:{slot_index}:{description.suffix}"
+                        )
                         if slot_key in known_entities:
                             continue
                         known_entities.add(slot_key)
-                        new_entities.append(PrintStreamAmsSlotMappedSensor(coordinator, entry, ams_id, slot_index, description))
+                        new_entities.append(
+                            PrintStreamAmsSlotMappedSensor(
+                                coordinator, entry, ams_id, slot_index, description
+                            )
+                        )
 
         if new_entities:
             async_add_entities(new_entities)
@@ -449,9 +607,16 @@ class PrintStreamPrinterStatusSensor(PrintStreamPrinterEntity, SensorEntity):
 
     _attr_name = "Status"
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, printer_id: str) -> None:
+    def __init__(
+        self,
+        coordinator: PrintStreamBridgeCoordinator,
+        entry: ConfigEntry,
+        printer_id: str,
+    ) -> None:
         super().__init__(coordinator, entry, printer_id)
-        self._attr_unique_id = printer_unique_id(entry, self.printer, printer_id, "status")
+        self._attr_unique_id = printer_unique_id(
+            entry, self.printer, printer_id, "status"
+        )
 
     @property
     def native_value(self) -> str | None:
@@ -503,7 +668,9 @@ class PrintStreamPrinterStatusSensor(PrintStreamPrinterEntity, SensorEntity):
             "supports_airduct_mode": printer_supports_airduct_mode(printer),
             "duct_mode": printer.get("ductMode"),
             "duct_available_modes": printer.get("ductAvailableModes"),
-            "supports_chamber_temperature": printer_supports_chamber_temperature(printer),
+            "supports_chamber_temperature": printer_supports_chamber_temperature(
+                printer
+            ),
             "light_modes": printer.get("lightModes"),
             "light_capabilities": printer.get("lightCapabilities"),
             "light_on": printer.get("lightOn"),
@@ -512,10 +679,20 @@ class PrintStreamPrinterStatusSensor(PrintStreamPrinterEntity, SensorEntity):
             "sd_card_present": printer.get("sdCardPresent"),
             "firmware_version": printer.get("firmwareVersion"),
             "hms_errors": printer.get("hmsErrors"),
-            "ams_units": [_serialize_ams_unit(ams) for ams in printer.get("ams", []) if isinstance(ams, dict)],
-            "external_spools": [_serialize_external_spool(spool) for spool in printer.get("externalSpools", []) if isinstance(spool, dict)],
+            "ams_units": [
+                _serialize_ams_unit(ams)
+                for ams in printer.get("ams", [])
+                if isinstance(ams, dict)
+            ],
+            "external_spools": [
+                _serialize_external_spool(spool)
+                for spool in printer.get("externalSpools", [])
+                if isinstance(spool, dict)
+            ],
             "observed_at": printer.get("observedAt"),
-            "camera_snapshot_url": _bridge_url(self._entry, printer.get("cameraSnapshotPath"), printer),
+            "camera_snapshot_url": _bridge_url(
+                self._entry, printer.get("cameraSnapshotPath"), printer
+            ),
             "cover_image_url": _cover_image_url(self._entry, printer),
             "detail_url": _detail_url(self._entry, printer),
         }
@@ -527,9 +704,16 @@ class PrintStreamPrinterProgressSensor(PrintStreamPrinterEntity, SensorEntity):
     _attr_name = "Progress"
     _attr_native_unit_of_measurement = PERCENTAGE
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, printer_id: str) -> None:
+    def __init__(
+        self,
+        coordinator: PrintStreamBridgeCoordinator,
+        entry: ConfigEntry,
+        printer_id: str,
+    ) -> None:
         super().__init__(coordinator, entry, printer_id)
-        self._attr_unique_id = printer_unique_id(entry, self.printer, printer_id, "progress")
+        self._attr_unique_id = printer_unique_id(
+            entry, self.printer, printer_id, "progress"
+        )
 
     @property
     def native_value(self) -> int | float | None:
@@ -553,7 +737,9 @@ class PrintStreamPrinterTemperatureSensor(PrintStreamPrinterEntity, SensorEntity
         super().__init__(coordinator, entry, printer_id)
         self._attr_name = name
         self._field = field
-        self._attr_unique_id = printer_unique_id(entry, self.printer, printer_id, field.lower())
+        self._attr_unique_id = printer_unique_id(
+            entry, self.printer, printer_id, field.lower()
+        )
 
     @property
     def native_value(self) -> int | float | None:
@@ -576,7 +762,9 @@ class PrintStreamPrinterPercentSensor(PrintStreamPrinterEntity, SensorEntity):
         super().__init__(coordinator, entry, printer_id)
         self._attr_name = name
         self._field = field
-        self._attr_unique_id = printer_unique_id(entry, self.printer, printer_id, field.lower())
+        self._attr_unique_id = printer_unique_id(
+            entry, self.printer, printer_id, field.lower()
+        )
 
     @property
     def native_value(self) -> int | float | None:
@@ -597,7 +785,9 @@ class PrintStreamPrinterValueSensor(PrintStreamPrinterEntity, SensorEntity):
         super().__init__(coordinator, entry, printer_id)
         self._attr_name = name
         self._field = field
-        self._attr_unique_id = printer_unique_id(entry, self.printer, printer_id, field.lower())
+        self._attr_unique_id = printer_unique_id(
+            entry, self.printer, printer_id, field.lower()
+        )
 
     @property
     def native_value(self) -> int | float | str | None:
@@ -620,7 +810,9 @@ class PrintStreamPrinterMappedSensor(PrintStreamPrinterEntity, SensorEntity):
         super().__init__(coordinator, entry, printer_id)
         self._description = description
         self._attr_name = description.name
-        self._attr_unique_id = printer_unique_id(entry, self.printer, printer_id, description.suffix)
+        self._attr_unique_id = printer_unique_id(
+            entry, self.printer, printer_id, description.suffix
+        )
         self._attr_device_class = description.device_class
         self._attr_native_unit_of_measurement = description.native_unit_of_measurement
         self._attr_entity_category = description.entity_category
@@ -652,7 +844,9 @@ class PrintStreamPrinterNozzleTemperatureSensor(PrintStreamPrinterEntity, Sensor
         self._extruder_id = extruder_id
         self._field = field
         self._attr_name = name
-        self._attr_unique_id = printer_unique_id(entry, self.printer, printer_id, f"nozzle_{extruder_id + 1}_{field.lower()}")
+        self._attr_unique_id = printer_unique_id(
+            entry, self.printer, printer_id, f"nozzle_{extruder_id + 1}_{field.lower()}"
+        )
 
     @property
     def native_value(self) -> int | float | None:
@@ -685,14 +879,24 @@ class PrintStreamPrinterNozzleTemperatureSensor(PrintStreamPrinterEntity, Sensor
 class PrintStreamPrinterExternalSpoolSensor(PrintStreamPrinterEntity, SensorEntity):
     """Summary sensor for a printer's manual spool holder."""
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, printer_id: str, spool_id: int) -> None:
+    def __init__(
+        self,
+        coordinator: PrintStreamBridgeCoordinator,
+        entry: ConfigEntry,
+        printer_id: str,
+        spool_id: int,
+    ) -> None:
         super().__init__(coordinator, entry, printer_id)
         self._spool_id = spool_id
-        self._attr_unique_id = printer_unique_id(entry, self.printer, printer_id, f"external_spool_{spool_id}")
+        self._attr_unique_id = printer_unique_id(
+            entry, self.printer, printer_id, f"external_spool_{spool_id}"
+        )
 
     @property
     def name(self) -> str:
-        return _external_spool_name(self._spool_id, len(printer_external_spools(self.printer)))
+        return _external_spool_name(
+            self._spool_id, len(printer_external_spools(self.printer))
+        )
 
     @property
     def native_value(self) -> str | None:
@@ -744,7 +948,9 @@ class PrintStreamAmsStatusSensor(PrintStreamAmsEntity, SensorEntity):
 
     _attr_name = "Status"
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, ams_id: str) -> None:
+    def __init__(
+        self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, ams_id: str
+    ) -> None:
         super().__init__(coordinator, entry, ams_id)
         self._attr_unique_id = ams_unique_id(entry, self.ams, ams_id, "status")
 
@@ -785,8 +991,14 @@ class PrintStreamAmsStatusSensor(PrintStreamAmsEntity, SensorEntity):
             "temperature": ams.get("temperature"),
             "active_slot": _active_slot_value(ams),
             "slots": ams.get("slots"),
-            "slots_display": [_serialize_ams_slot(slot) for slot in ams.get("slots", []) if isinstance(slot, dict)],
-            "detail_url": _detail_url(self._entry, {"detailPath": f"/printers/{ams.get('printerId')}"}),
+            "slots_display": [
+                _serialize_ams_slot(slot)
+                for slot in ams.get("slots", [])
+                if isinstance(slot, dict)
+            ],
+            "detail_url": _detail_url(
+                self._entry, {"detailPath": f"/printers/{ams.get('printerId')}"}
+            ),
         }
 
 
@@ -797,7 +1009,9 @@ class PrintStreamAmsTemperatureSensor(PrintStreamAmsEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.TEMPERATURE
     _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, ams_id: str) -> None:
+    def __init__(
+        self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, ams_id: str
+    ) -> None:
         super().__init__(coordinator, entry, ams_id)
         self._attr_unique_id = ams_unique_id(entry, self.ams, ams_id, "temperature")
 
@@ -813,7 +1027,9 @@ class PrintStreamAmsHumiditySensor(PrintStreamAmsEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.HUMIDITY
     _attr_native_unit_of_measurement = PERCENTAGE
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, ams_id: str) -> None:
+    def __init__(
+        self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, ams_id: str
+    ) -> None:
         super().__init__(coordinator, entry, ams_id)
         self._attr_unique_id = ams_unique_id(entry, self.ams, ams_id, "humidity")
 
@@ -835,7 +1051,9 @@ class PrintStreamAmsMappedSensor(PrintStreamAmsEntity, SensorEntity):
         super().__init__(coordinator, entry, ams_id)
         self._description = description
         self._attr_name = description.name
-        self._attr_unique_id = ams_unique_id(entry, self.ams, ams_id, description.suffix)
+        self._attr_unique_id = ams_unique_id(
+            entry, self.ams, ams_id, description.suffix
+        )
         self._attr_device_class = description.device_class
         self._attr_native_unit_of_measurement = description.native_unit_of_measurement
         self._attr_entity_category = description.entity_category
@@ -853,7 +1071,9 @@ class PrintStreamAmsActiveSlotSensor(PrintStreamAmsEntity, SensorEntity):
 
     _attr_name = "Active Slot"
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, ams_id: str) -> None:
+    def __init__(
+        self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, ams_id: str
+    ) -> None:
         super().__init__(coordinator, entry, ams_id)
         self._attr_unique_id = ams_unique_id(entry, self.ams, ams_id, "active_slot")
 
@@ -865,11 +1085,19 @@ class PrintStreamAmsActiveSlotSensor(PrintStreamAmsEntity, SensorEntity):
 class PrintStreamAmsSlotSensor(PrintStreamAmsEntity, SensorEntity):
     """Tray entity for a single AMS slot."""
 
-    def __init__(self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, ams_id: str, slot_index: int) -> None:
+    def __init__(
+        self,
+        coordinator: PrintStreamBridgeCoordinator,
+        entry: ConfigEntry,
+        ams_id: str,
+        slot_index: int,
+    ) -> None:
         super().__init__(coordinator, entry, ams_id)
         self._slot_index = slot_index
         self._attr_name = f"Tray {slot_index + 1}"
-        self._attr_unique_id = ams_unique_id(entry, self.ams, ams_id, f"tray_{slot_index + 1}")
+        self._attr_unique_id = ams_unique_id(
+            entry, self.ams, ams_id, f"tray_{slot_index + 1}"
+        )
 
     @property
     def native_value(self) -> str | None:
@@ -912,7 +1140,9 @@ class PrintStreamAmsSlotSensor(PrintStreamAmsEntity, SensorEntity):
             "k_value": slot.get("k"),
             "tray_uuid": slot.get("trayUuid"),
             "empty": not _slot_has_filament(slot),
-            "detail_url": _detail_url(self._entry, {"detailPath": f"/printers/{ams.get('printerId')}"}),
+            "detail_url": _detail_url(
+                self._entry, {"detailPath": f"/printers/{ams.get('printerId')}"}
+            ),
         }
 
     @property
@@ -944,7 +1174,9 @@ class PrintStreamAmsSlotMappedSensor(PrintStreamAmsEntity, SensorEntity):
         self._slot_index = slot_index
         self._description = description
         self._attr_name = f"Tray {slot_index + 1} {description.name}"
-        self._attr_unique_id = ams_unique_id(entry, self.ams, ams_id, f"tray_{slot_index + 1}_{description.suffix}")
+        self._attr_unique_id = ams_unique_id(
+            entry, self.ams, ams_id, f"tray_{slot_index + 1}_{description.suffix}"
+        )
         self._attr_device_class = description.device_class
         self._attr_native_unit_of_measurement = description.native_unit_of_measurement
         self._attr_entity_category = description.entity_category
@@ -971,11 +1203,15 @@ def _detail_url(entry: ConfigEntry, printer: dict[str, Any]) -> str | None:
     return build_url(entry.data[CONF_HUB_URL], detail_path)
 
 
-def _bridge_url(entry: ConfigEntry, path: Any, printer: dict[str, Any] | None = None) -> str | None:
+def _bridge_url(
+    entry: ConfigEntry, path: Any, printer: dict[str, Any] | None = None
+) -> str | None:
     path_value = _string_value(path)
     if not path_value:
         return None
-    return _append_cache_buster(build_url(entry.data[CONF_HUB_URL], path_value), printer)
+    return _append_cache_buster(
+        build_url(entry.data[CONF_HUB_URL], path_value), printer
+    )
 
 
 def _cover_image_url(entry: ConfigEntry, printer: dict[str, Any]) -> str | None:
@@ -984,15 +1220,24 @@ def _cover_image_url(entry: ConfigEntry, printer: dict[str, Any]) -> str | None:
         return direct_url
 
     printer_id = _string_value(printer.get("id"))
-    cover_job_name = _string_value(printer.get("jobName")) or _string_value(printer.get("lastJobName"))
+    cover_job_name = _string_value(printer.get("jobName")) or _string_value(
+        printer.get("lastJobName")
+    )
     if not printer_id or not cover_job_name:
         return None
 
-    query = urlencode({
-        "job": cover_job_name,
-        "gcode": _string_value(printer.get("gcodeFile")) or "",
-    })
-    return _append_cache_buster(build_url(entry.data[CONF_HUB_URL], f"/api/printers/{printer_id}/cover?{query}"), printer)
+    query = urlencode(
+        {
+            "job": cover_job_name,
+            "gcode": _string_value(printer.get("gcodeFile")) or "",
+        }
+    )
+    return _append_cache_buster(
+        build_url(
+            entry.data[CONF_HUB_URL], f"/api/printers/{printer_id}/cover?{query}"
+        ),
+        printer,
+    )
 
 
 def _append_cache_buster(url: str, printer: dict[str, Any] | None) -> str:
@@ -1002,7 +1247,15 @@ def _append_cache_buster(url: str, printer: dict[str, Any] | None) -> str:
 
     parts = urlsplit(url)
     separator = "&" if parts.query else "?"
-    return urlunsplit((parts.scheme, parts.netloc, parts.path, f"{parts.query}{separator if parts.query else ''}t={observed_at}", parts.fragment))
+    return urlunsplit(
+        (
+            parts.scheme,
+            parts.netloc,
+            parts.path,
+            f"{parts.query}{separator if parts.query else ''}t={observed_at}",
+            parts.fragment,
+        )
+    )
 
 
 def _active_slot_value(ams: dict[str, Any] | None) -> int | None:
@@ -1044,17 +1297,23 @@ def _serialize_ams_slot(slot: dict[str, Any]) -> dict[str, Any]:
 def _serialize_ams_unit(ams: dict[str, Any]) -> dict[str, Any]:
     return {
         **ams,
-        "slots": [_serialize_ams_slot(slot) for slot in ams.get("slots", []) if isinstance(slot, dict)],
+        "slots": [
+            _serialize_ams_slot(slot)
+            for slot in ams.get("slots", [])
+            if isinstance(slot, dict)
+        ],
     }
 
 
 def _serialize_external_spool(spool: dict[str, Any]) -> dict[str, Any]:
-    display = _resolve_ams_slot_display({
-        "trayName": spool.get("trayName"),
-        "filamentType": spool.get("filamentType"),
-        "color": spool.get("color"),
-        "colors": spool.get("colors"),
-    })
+    display = _resolve_ams_slot_display(
+        {
+            "trayName": spool.get("trayName"),
+            "filamentType": spool.get("filamentType"),
+            "color": spool.get("color"),
+            "colors": spool.get("colors"),
+        }
+    )
     return {
         **spool,
         "displayName": display["display_name"],
@@ -1114,7 +1373,11 @@ def _resolve_ams_slot_display(slot: dict[str, Any]) -> dict[str, str | None]:
     color_hex = _primary_color_hex(slot)
     color_name = _color_name_for_hex(color_hex)
 
-    if tray_name and raw_tray_code is None and not _should_suppress_repeated_tray_label(tray_name, filament_type):
+    if (
+        tray_name
+        and raw_tray_code is None
+        and not _should_suppress_repeated_tray_label(tray_name, filament_type)
+    ):
         display_name = tray_name
     elif color_name:
         display_name = color_name
@@ -1147,13 +1410,20 @@ def _raw_tray_code(value: str | None) -> str | None:
 
 
 def _looks_like_raw_tray_code(value: str) -> bool:
-    if len(value) < 6 or value[0].isalpha() is False or value[1:3].isdigit() is False or value[3] != "-":
+    if (
+        len(value) < 6
+        or value[0].isalpha() is False
+        or value[1:3].isdigit() is False
+        or value[3] != "-"
+    ):
         return False
     suffix = value[4:]
     return len(suffix) >= 2 and suffix[0].isalpha() and suffix[1:].isdigit()
 
 
-def _should_suppress_repeated_tray_label(tray_name: str, filament_type: str | None) -> bool:
+def _should_suppress_repeated_tray_label(
+    tray_name: str, filament_type: str | None
+) -> bool:
     if not filament_type:
         return False
     if tray_name.strip().casefold() != filament_type.strip().casefold():
