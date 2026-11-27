@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import MATCH_ALL
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
@@ -19,11 +20,19 @@ _DOOR_SENSOR_MODELS = {"X1C", "X1E", "X2D", "P2S", "H2D", "H2DPRO", "H2C", "H2S"
 _AIRDUCT_MODELS = {"X2D", "P2S", "H2D", "H2DPRO", "H2C", "H2S"}
 _DUAL_NOZZLE_MODELS = {"X2D", "H2D", "H2DPRO", "H2C"}
 
+# Every PrintStream entity's extra attributes are a live mirror of the printer or AMS for the cards
+# and templates, never history: each value that changes has its own sensor, recorded as its state.
+# Recording them cost about 1.3 GB per printer: a status entity's 5 to 7 KB of attributes were
+# stored again on every update (about 25,000 a day while printing). Excluded, they stay available
+# live, and the recorder stores only the state.
+_UNRECORDED_ATTRIBUTES = frozenset({MATCH_ALL})
+
 
 class PrintStreamPrinterEntity(CoordinatorEntity[PrintStreamBridgeCoordinator]):
     """Base class for printer-backed entities."""
 
     _attr_has_entity_name = True
+    _unrecorded_attributes = _UNRECORDED_ATTRIBUTES
 
     def __init__(
         self,
@@ -68,6 +77,7 @@ class PrintStreamAmsEntity(CoordinatorEntity[PrintStreamBridgeCoordinator]):
     """Base class for AMS-backed entities."""
 
     _attr_has_entity_name = True
+    _unrecorded_attributes = _UNRECORDED_ATTRIBUTES
 
     def __init__(
         self, coordinator: PrintStreamBridgeCoordinator, entry: ConfigEntry, ams_id: str
